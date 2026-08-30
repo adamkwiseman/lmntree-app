@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  LMN TREE — FULL SHELL (Step 4: reads content from Supabase)
+  ============================================================
+  Units, lessons, and cards now come LIVE from your database.
+  Tap a unit  -> loads its lessons from `lessons`
+  Tap a tile  -> loads that lesson (art + video from `lessons`)
+  Listen&Speak-> loads that lesson's cards from `cards`
+  Finish      -> writes progress (lesson_id = the lesson's DB id)
+
+  Positions (PICKER/GRID/HUB/CARD/UCTRL) are still hardcoded —
+  that's your calibration, unchanged. Only content is now from DB.
+
+  Add a lesson in Supabase -> it appears here. No code edits.
+  ============================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMN Tree</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; } html,body { height:100%; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:#1a2230; background:#000; }
+  .screen { min-height:100vh; }
+  .screen.center { display:flex; align-items:center; justify-content:center; padding:16px; background:#eef2f7; }
+  .screen.artfull { display:flex; align-items:center; justify-content:center; background:#000; }
+  .hidden { display:none !important; }
+  .stage { position:relative; aspect-ratio:16/9; width:min(100vw, calc(100vh * 1.7778)); background-size:100% 100%; background-position:center; background-repeat:no-repeat; }
+  .zone { position:absolute; border:none; background:transparent; cursor:pointer; padding:0; border-radius:12px; }
+  .zone.circle { border-radius:50%; }
+  .zone:hover { background:rgba(255,255,255,.16); }
+  .zone.locked { cursor:not-allowed; background:rgba(10,12,18,.55); }
+  .zone.locked:hover { background:rgba(10,12,18,.55); }
+  .zone.locked::after { content:"\1F512"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .zone.done::after { content:"\2713"; position:absolute; top:3%; right:5%; width:20px; height:20px; border-radius:50%; background:#17a06a; color:#fff; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .ovl { position:absolute; }
+  #loginPanel { position:absolute; top:13%; right:1.5%; width:min(300px,44%); background:#fff; border-radius:12px; box-shadow:0 14px 34px rgba(0,0,0,.35); padding:16px; z-index:15; text-align:center; }
+  #loginPanel h3 { margin:0 0 4px; font-size:18px; } #loginPanel .hint { margin:0 0 12px; font-size:12px; color:#7c8aa0; }
+  #loginPanel input { display:block; width:100%; margin:0 0 10px; padding:10px 12px; font:inherit; font-size:15px; border:1px solid #cfd7e3; border-radius:9px; }
+  #loginPanel button.go { width:100%; border:none; border-radius:9px; padding:11px; font:inherit; font-size:15px; background:#2f6fed; color:#fff; cursor:pointer; }
+  #loginPanel button.link { background:none; border:none; color:#2f6fed; cursor:pointer; font:inherit; font-size:13px; margin-top:8px; }
+  #loginPanel .st { min-height:18px; margin-top:8px; font-size:13px; color:#c0392b; }
+  #pointsBox { position:absolute; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:800; color:#2b3a52; pointer-events:none; font-size:2.4vw; }
+  #hubVideo { position:absolute; background:#000; overflow:hidden; }
+  #hubVideo video { width:100%; height:100%; object-fit:cover; }
+  #phraseBox { font-family:"Caveat",cursive; font-weight:700; color:#1a2230; font-size:5vw; line-height:1.05; display:flex; align-items:center; justify-content:center; text-align:center; }
+  #transPanel { background:rgba(255,255,255,.92); border:1px solid #dfe6f0; border-radius:10px; padding:.7vw .8vw; display:flex; flex-direction:column; gap:.4vw; overflow:auto; }
+  #transPanel .en { color:#2f6fed; font-weight:700; font-size:.95vw; }
+  #transPanel select { font:inherit; font-size:1vw; padding:.35vw; border:1px solid #cfd7e3; border-radius:7px; }
+  #transPanel .out { font-weight:700; color:#2b3a52; min-height:1.2em; font-size:1.15vw; }
+  #transPanel .listen { align-self:flex-start; border:none; background:#17a06a; color:#fff; border-radius:7px; padding:.35vw .7vw; font:inherit; font-size:.95vw; cursor:pointer; }
+  #recBtn { position:absolute; border:none; background:transparent center/contain no-repeat; cursor:pointer; aspect-ratio:1/1; padding:0; transition:transform .08s ease, filter .08s ease; }
+  #recBtn:hover { transform:scale(1.04); filter:brightness(1.06); }
+  #phoneMedia { background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#667; font-size:1vw; }
+  #phoneMedia video, #phoneMedia img { width:100%; height:100%; object-fit:cover; }
+  body.cal .zone { background:rgba(47,111,237,.30)!important; outline:2px dashed #fff; }
+  body.cal .ovl { outline:2px dashed #e53935; }
+  body.cal #pointsBox { outline:2px dashed #e53935; background:rgba(229,57,53,.25); }
+  body.cal .zone::before { content:attr(data-n); position:absolute; top:2px; left:4px; color:#fff; font-size:12px; font-weight:800; text-shadow:0 1px 2px #000; }
+  body.cal #recBtn { outline:2px dashed #fff; }
+  #calBtn { position:fixed; top:10px; left:10px; z-index:40; font:inherit; font-size:13px; cursor:pointer; background:#14181f; color:#fff; border:none; border-radius:8px; padding:8px 12px; opacity:.85; }
+  #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#14181f; color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:40; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body>
+  <button id="calBtn" onclick="toggleCal()">Calibrate</button>
+  <div class="screen artfull" id="pickerScreen">
+    <div class="stage" id="pickerStage">
+      <div id="loginPanel" class="hidden">
+        <div id="loginForm">
+          <h3>Log in</h3><p class="hint">Try Ahmed / 1234</p>
+          <input id="nameInput" type="text" placeholder="Your name" />
+          <input id="pinInput" type="text" placeholder="PIN" />
+          <button class="go" onclick="doLogin()">Enter</button>
+          <div class="st" id="loginStatus"></div>
+        </div>
+        <div id="loginInfo" class="hidden">
+          <h3>Signed in</h3><p class="hint" id="whoName"></p>
+          <button class="link" onclick="logout()">Log out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="screen artfull hidden" id="unitScreen"><div class="stage" id="unitStage"></div></div>
+  <div class="screen artfull hidden" id="hubScreen"><div class="stage" id="hubStage"></div></div>
+  <div class="screen artfull hidden" id="slidesScreen"><div class="stage" id="slidesStage"></div></div>
+  <div id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://quymqrdoxmplpiwrptbb.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_mGAO-9c1PXZT9ltrVtHVLg_g4d_WgN4";
+
+    const WHEEL_IMG   = "https://res.cloudinary.com/dvokel99y/image/upload/v1786859227/YAAAAAAAAAAAYYYYYYYYYYYYYYYYYY_bskthl.png";
+    const CUE_CARD_BG = "https://res.cloudinary.com/dvokel99y/image/upload/v1786867154/BEST_study_card_background_august_cxiok6.png";
+    const FUNCTION_URL = "https://us-central1-eco-groove-475802-i4.cloudfunctions.net/lmn-translate";
+    const RECORDER_URL = "https://adamkwiseman.github.io/lmn-recorder/lmn_recorder_final.html";
+    const BADGE_IMG    = "https://res.cloudinary.com/dvokel99y/image/upload/v1786871243/transparent_speak_and_listen_dfd0f6.png";
+
+    let db=null;
+    try { const { createClient } = supabase; db = createClient(SUPABASE_URL, SUPABASE_KEY); }
+    catch(e){ console.error("Supabase init:", e); }
+
+    function showCard(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.add("hidden")); document.getElementById(id).classList.remove("hidden"); }
+    function pxs(o){ return 'left:'+o.left+'%; top:'+o.top+'%; width:'+o.width+'%; height:'+o.height+'%;'; }
+
+    /* session / live data */
+    let currentStudent=null, doneLessons=[];
+    let currentUnit=null, lessonsByNumber={}, currentLesson=null, currentCards=[];
+
+    document.getElementById("pickerStage").style.backgroundImage='url("'+WHEEL_IMG+'")';
+    document.getElementById("slidesStage").style.backgroundImage='url("'+CUE_CARD_BG+'")';
+
+    /* ===== WHEEL PICKER (calibrated) ===== */
+    const PW=1672, PH=941;
+    const PICKER = { cxf:0.514, cyf:0.676, rpx:151, zsz:89, rotDeg:0 };
+    const PICKER_CTRL = { loginBtn:{left:78.0,top:4.5,width:19.0,height:9.0}, pickunit:{left:41.0,top:90.0,width:24.0,height:8.0} };
+    function renderPicker(){
+      let html="";
+      for(let k=1;k<=10;k++){
+        const th=(PICKER.rotDeg+(k-0.5)*36)*Math.PI/180;
+        const px=PICKER.cxf*PW+PICKER.rpx*Math.sin(th), py=PICKER.cyf*PH-PICKER.rpx*Math.cos(th);
+        const l=(px-PICKER.zsz/2)/PW*100, t=(py-PICKER.zsz/2)/PH*100, w=PICKER.zsz/PW*100, h=PICKER.zsz/PH*100;
+        html+='<button class="zone circle" data-n="'+k+'" style="left:'+l+'%; top:'+t+'%; width:'+w+'%; height:'+h+'%;" onclick="pickUnit('+k+')"></button>';
+      }
+      html+=ctrl(PICKER_CTRL.loginBtn,"LOGIN","toggleLoginPanel()");
+      html+=ctrl(PICKER_CTRL.pickunit,"PICK","pickHint()");
+      const st=document.getElementById("pickerStage"), panel=document.getElementById("loginPanel");
+      st.innerHTML=html; st.appendChild(panel);
+    }
+    function ctrl(c,label,handler){ return '<button class="zone" data-n="'+label+'" style="'+pxs(c)+'" onclick="'+handler+'"></button>'; }
+
+    async function pickUnit(k){
+      if(!currentStudent){ toast("Please log in first"); openLoginPanel(); return; }
+      const { data, error } = await db.from("units").select("*").eq("unit_number",k).limit(1);
+      if(error){ console.error("units load:",error); toast("Couldn't load unit (see console)"); return; }
+      if(!data || !data.length){ toast("Unit "+k+" \u2014 coming soon"); return; }
+      currentUnit=data[0];
+      if(currentUnit.art_url) document.getElementById("unitStage").style.backgroundImage='url("'+currentUnit.art_url+'")';
+      await loadLessons(currentUnit.id);
+      renderUnit();
+      showCard("unitScreen");
+    }
+    function pickHint(){ if(!currentStudent){ toast("Log in, then tap a number"); openLoginPanel(); } else toast("Tap a number to choose a unit"); }
+    function toggleLoginPanel(){ const p=document.getElementById("loginPanel"); if(p.classList.contains("hidden")) openLoginPanel(); else p.classList.add("hidden"); }
+    function openLoginPanel(){ const p=document.getElementById("loginPanel"); document.getElementById("loginForm").classList.toggle("hidden",!!currentStudent); document.getElementById("loginInfo").classList.toggle("hidden",!currentStudent); if(currentStudent) document.getElementById("whoName").textContent=currentStudent.display_name; p.classList.remove("hidden"); }
+
+    async function loadLessons(unitId){
+      lessonsByNumber={};
+      const { data, error } = await db.from("lessons").select("*").eq("unit_id",unitId).order("lesson_number");
+      if(error){ console.error("lessons load:",error); return; }
+      (data||[]).forEach(function(l){ lessonsByNumber[l.lesson_number]=l; });
+    }
+
+    /* ===== UNIT TILES (calibrated) ===== */
+    const GRID={cols:5,rows:3,startX:16.9,startY:21.6,tileW:13.9,tileH:18.1,gapX:1.0,gapY:3.4};
+    const UCTRL={home:{left:5.5,top:84.5,width:10.0,height:13.5},points:{left:30.0,top:85.0,width:40.0,height:12.5},store:{left:84.0,top:84.0,width:8.0,height:14.5}};
+    const DEMO_POINTS=0;
+    function stateFor(i){
+      const num=i+1, lesson=lessonsByNumber[num];
+      if(!lesson) return "locked";
+      const id=String(lesson.id);
+      if(doneLessons.includes(id)) return "done";
+      if(num===1) return "available";
+      const prev=lessonsByNumber[num-1];
+      if(prev && doneLessons.includes(String(prev.id))) return "available";
+      return "locked";
+    }
+    function renderUnit(){
+      let html="";
+      for(let i=0;i<15;i++){
+        const st=stateFor(i),col=i%GRID.cols,row=Math.floor(i/GRID.cols);
+        const l=GRID.startX+col*(GRID.tileW+GRID.gapX), t=GRID.startY+row*(GRID.tileH+GRID.gapY);
+        html+='<button class="zone '+st+'" data-n="'+(i+1)+'" style="left:'+l+'%; top:'+t+'%; width:'+GRID.tileW+'%; height:'+GRID.tileH+'%;" onclick="openLesson('+i+')"></button>';
+      }
+      html+=ctrl(UCTRL.home,"HOME","showCard('pickerScreen')");
+      html+=ctrl(UCTRL.store,"STORE","toast('LMN Tree Knowledge Store \u2014 coming later')");
+      const p=UCTRL.points;
+      html+='<div id="pointsBox" data-n="POINTS" style="'+pxs(p)+'">\u2B50 '+DEMO_POINTS+'</div>';
+      document.getElementById("unitStage").innerHTML=html;
+    }
+    function openLesson(i){
+      const num=i+1, lesson=lessonsByNumber[num];
+      if(!lesson){ toast("Lesson "+num+" \u2014 coming soon"); return; }
+      if(stateFor(i)==="locked"){ return; }
+      currentLesson=lesson;
+      if(lesson.art_url) document.getElementById("hubStage").style.backgroundImage='url("'+lesson.art_url+'")';
+      buildHub();
+      showCard("hubScreen");
+    }
+
+    /* ===== LESSON HUB (calibrated positions) ===== */
+    const HUB={ video:{left:1.8,top:2.8,width:50.5,height:56,n:"VIDEO"}, listen:{left:57.5,top:28,width:41,height:17,n:"LISTEN & SPEAK"}, games:{left:57.5,top:47,width:41,height:17,n:"PRACTICE GAMES"}, read:{left:57.5,top:66,width:41,height:17,n:"READ & WRITE"}, home:{left:1.5,top:85,width:7,height:13,n:"HOME"} };
+    function buildHub(){
+      let h="";
+      h+='<button class="zone" data-n="'+HUB.video.n+'" style="'+pxs(HUB.video)+'" onclick="playHubVideo()"></button>';
+      h+='<button class="zone" data-n="'+HUB.listen.n+'" style="'+pxs(HUB.listen)+'" onclick="openSlides()"></button>';
+      h+='<button class="zone" data-n="'+HUB.games.n+'" style="'+pxs(HUB.games)+'" onclick="toast(\'Practice Games \u2014 coming later\')"></button>';
+      h+='<button class="zone" data-n="'+HUB.read.n+'" style="'+pxs(HUB.read)+'" onclick="toast(\'Read & Write \u2014 coming later\')"></button>';
+      h+='<button class="zone" data-n="'+HUB.home.n+'" style="'+pxs(HUB.home)+'" onclick="showCard(\'unitScreen\')"></button>';
+      document.getElementById("hubStage").innerHTML=h;
+    }
+    function playHubVideo(){
+      const url = currentLesson && currentLesson.video_url;
+      if(!url){ toast("No video set for this lesson yet"); return; }
+      let v=document.getElementById("hubVideo");
+      if(!v){ v=document.createElement("div"); v.id="hubVideo"; v.setAttribute("style",pxs(HUB.video)); v.innerHTML='<video src="'+url+'" controls autoplay playsinline></video>'; document.getElementById("hubStage").appendChild(v); }
+    }
+
+    /* ===== CUE CARDS (calibrated positions) ===== */
+    const CARD={ phrase:{left:23.5,top:29,width:34,height:12}, trans:{left:20,top:45.5,width:40,height:20}, phone:{left:71,top:30,width:18.5,height:56}, prev:{left:11,top:48,width:8,height:14,n:"PREV"}, next:{left:81,top:48,width:8,height:14,n:"NEXT"}, sayit:{left:35.5,top:76.5,width:10,height:9,n:"LISTEN & SAY IT"}, rec:{left:36.5,top:70,width:8,n:"RECORD"}, back:{left:0.5,top:0.5,width:12,height:8,n:"BACK"} };
+    const LANGS='<option value="" selected>\uD83C\uDF10 Translate\u2026</option><optgroup label="Priority"><option value="am">Amharic</option><option value="ar">Arabic</option><option value="bn">Bengali</option><option value="om">Oromo</option><option value="so">Somali</option><option value="ti">Tigrinya</option></optgroup><optgroup label="Other"><option value="es">Spanish</option><option value="fr">French</option><option value="zh-TW">Chinese (Trad.)</option><option value="zh">Chinese (Simp.)</option><option value="vi">Vietnamese</option><option value="ur">Urdu</option><option value="fa">Persian</option><option value="ps">Pashto</option><option value="ne">Nepali</option><option value="my">Burmese</option><option value="tl">Tagalog</option><option value="ru">Russian</option><option value="uk">Ukrainian</option></optgroup>';
+    let sIdx=0, curAudio=null;
+    async function openSlides(){
+      const { data, error } = await db.from("cards").select("*").eq("lesson_id",currentLesson.id).order("card_order");
+      if(error){ console.error("cards load:",error); toast("Couldn't load cards (see console)"); return; }
+      if(!data || !data.length){ toast("No cards yet for this lesson"); return; }
+      currentCards=data; sIdx=0; buildSlides(); showCard("slidesScreen");
+    }
+    function curS(){ return currentCards[sIdx]; }
+    function buildSlides(){
+      let h="";
+      h+='<div class="ovl" id="phraseBox" style="'+pxs(CARD.phrase)+'"></div>';
+      h+='<div class="ovl" id="transPanel" style="'+pxs(CARD.trans)+'"><div class="en" id="enPhrase"></div><select id="langSel" onchange="doTranslate()">'+LANGS+'</select><div class="out" id="transOut"></div><button class="listen" id="listenBtn" style="display:none" onclick="doListen()">\uD83D\uDD0A Listen</button></div>';
+      h+='<div class="ovl" id="phoneMedia" style="'+pxs(CARD.phone)+'"></div>';
+      h+='<button class="zone" data-n="'+CARD.prev.n+'" style="'+pxs(CARD.prev)+'" onclick="prevSlide()"></button>';
+      h+='<button class="zone" data-n="'+CARD.next.n+'" style="'+pxs(CARD.next)+'" onclick="nextSlide()"></button>';
+      h+='<button class="zone" data-n="'+CARD.sayit.n+'" style="'+pxs(CARD.sayit)+'" onclick="record()"></button>';
+      h+='<button id="recBtn" data-n="'+CARD.rec.n+'" style="left:'+CARD.rec.left+'%; top:'+CARD.rec.top+'%; width:'+CARD.rec.width+'%; background-image:url('+BADGE_IMG+');" onclick="record()"></button>';
+      h+='<button class="zone" data-n="'+CARD.back.n+'" style="'+pxs(CARD.back)+'" onclick="showCard(\'hubScreen\')"></button>';
+      document.getElementById("slidesStage").innerHTML=h; showSlide();
+    }
+    function showSlide(){
+      const s=curS();
+      document.getElementById("phraseBox").textContent=s.phrase;
+      document.getElementById("enPhrase").textContent="EN: "+s.phrase;
+      document.getElementById("langSel").value=""; document.getElementById("transOut").textContent=""; document.getElementById("listenBtn").style.display="none";
+      const pm=document.getElementById("phoneMedia"), media=s.phone_media_url;
+      pm.innerHTML = media ? ((s.phone_media_type==="video")?'<video src="'+media+'" controls playsinline></video>':'<img src="'+media+'" alt="">') : "media";
+    }
+    function prevSlide(){ if(sIdx>0){ sIdx--; showSlide(); } }
+    function nextSlide(){ if(sIdx<currentCards.length-1){ sIdx++; showSlide(); } else { finishLessonAndReturn(); } }
+    async function doTranslate(){
+      const lang=document.getElementById("langSel").value, out=document.getElementById("transOut"), lb=document.getElementById("listenBtn");
+      if(!lang){ out.textContent=""; lb.style.display="none"; return; }
+      out.textContent="Translating\u2026"; lb.style.display="none";
+      try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"translate",text:curS().phrase,lang:lang})}); const d=await r.json(); if(d.translation){ out.textContent=d.translation; lb.style.display="inline-block"; } else out.textContent="No translation."; }catch(e){ out.textContent="Translation unavailable."; }
+    }
+    async function doListen(){
+      const lang=document.getElementById("langSel").value, text=document.getElementById("transOut").textContent;
+      if(!lang||!text) return;
+      if(curAudio&&!curAudio.paused){ curAudio.pause(); curAudio.currentTime=0; return; }
+      try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"speak",text:text,lang:lang})}); const d=await r.json(); if(d.audio){ curAudio=new Audio("data:audio/mp3;base64,"+d.audio); curAudio.play(); } }catch(e){}
+    }
+    function record(){ window.open(RECORDER_URL+"?slide="+curS().recorder_slide,"lmnRecorder","width=720,height=560"); }
+
+    /* ===== LOGIN + PROGRESS ===== */
+    async function doLogin(){
+      if(!db){ document.getElementById("loginStatus").textContent="Supabase not configured."; return; }
+      const name=document.getElementById("nameInput").value.trim(), pin=document.getElementById("pinInput").value.trim(), status=document.getElementById("loginStatus");
+      status.textContent="Checking\u2026";
+      const { data, error } = await db.from("students").select("id, display_name").ilike("display_name",name).eq("pin",pin);
+      if(error){ status.textContent="Something went wrong: "+error.message; return; }
+      if(!data||!data.length){ status.textContent="We couldn't find that name and PIN. Try again."; return; }
+      currentStudent=data[0]; status.textContent="";
+      await loadProgress(); renderPicker();
+      document.getElementById("loginPanel").classList.add("hidden");
+      toast("Welcome, "+currentStudent.display_name+"! Pick a unit.");
+    }
+    async function loadProgress(){ doneLessons=[]; const { data, error } = await db.from("progress").select("lesson_id").eq("student_id",currentStudent.id).eq("status","completed"); if(error){ console.error(error); return; } doneLessons=(data||[]).map(r=>String(r.lesson_id)); }
+    function logout(){ currentStudent=null; doneLessons=[]; document.getElementById("nameInput").value=""; document.getElementById("pinInput").value=""; renderPicker(); document.getElementById("loginPanel").classList.add("hidden"); toast("Logged out"); }
+
+    async function finishLessonAndReturn(){
+      const lid=String(currentLesson.id);
+      if(doneLessons.includes(lid)){ renderUnit(); showCard("unitScreen"); return; }
+      if(!db || !currentStudent){ renderUnit(); showCard("unitScreen"); return; }
+      const { error } = await db.from("progress").insert({ student_id:currentStudent.id, lesson_id:lid, status:"completed" });
+      if(error){ console.error(error); toast("Couldn't save progress"); showCard("unitScreen"); return; }
+      doneLessons.push(lid); renderUnit(); showCard("unitScreen"); toast("Lesson complete! \u2713");
+    }
+
+    function toggleCal(){ document.body.classList.toggle("cal"); }
+    function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1600); }
+
+    renderPicker();
+  </script>
+</body>
+</html>
