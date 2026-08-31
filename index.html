@@ -64,10 +64,21 @@
   #calBtn { position:fixed; top:10px; left:10px; z-index:40; font:inherit; font-size:13px; cursor:pointer; background:#14181f; color:#fff; border:none; border-radius:8px; padding:8px 12px; opacity:.85; }
   #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#14181f; color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:40; }
   #toast.show { opacity:1; }
+   /* ===== RECORDER OVERLAY — BOTTOM SHEET (active) ===== */
+  #recOverlay { position:fixed; inset:0; z-index:60; background:rgba(10,12,18,.55); display:flex; align-items:flex-end; justify-content:center; }
+  #recOverlay:not(.hidden) { animation:recFade .25s ease; }
+  #recPanel { position:relative; width:100%; max-width:720px; height:min(85vh,640px); background:#fff; border-radius:18px 18px 0 0; box-shadow:0 -12px 44px rgba(0,0,0,.42); overflow:hidden; animation:recSlideUp .30s cubic-bezier(.22,.61,.36,1); }
+  #recFrame { width:100%; height:100%; border:none; background:#fff; }
+  #recClose { position:absolute; top:8px; right:10px; z-index:2; width:34px; height:34px; border:none; border-radius:50%; background:#14181f; color:#fff; font-size:18px; line-height:1; cursor:pointer; opacity:.9; }
+  @keyframes recSlideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+  @keyframes recFade { from { opacity:0; } to { opacity:1; } }
+
+  /* ===== REVERT: CENTERED PANEL (to switch back, comment the block above and un-comment this) =====
   #recOverlay { position:fixed; inset:0; z-index:60; background:rgba(10,12,18,.72); display:flex; align-items:center; justify-content:center; padding:12px; }
   #recPanel { position:relative; width:min(720px,94vw); height:min(620px,92vh); background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.5); overflow:hidden; }
   #recFrame { width:100%; height:100%; border:none; background:#fff; }
-  #recClose { position:absolute; top:8px; right:10px; z-index:2; width:34px; height:34px; border:none; border-radius:50%; background:#14181f; color:#fff; font-size:18px; line-height:1; cursor:pointer; opacity:.9; }</style>
+  #recClose { position:absolute; top:8px; right:10px; z-index:2; width:34px; height:34px; border:none; border-radius:50%; background:#14181f; color:#fff; font-size:18px; line-height:1; cursor:pointer; opacity:.9; }
+  */</style>
 </head>
 <body>
   <button id="calBtn" onclick="toggleCal()">Calibrate</button>
