@@ -64,7 +64,10 @@
   #calBtn { position:fixed; top:10px; left:10px; z-index:40; font:inherit; font-size:13px; cursor:pointer; background:#14181f; color:#fff; border:none; border-radius:8px; padding:8px 12px; opacity:.85; }
   #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#14181f; color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:40; }
   #toast.show { opacity:1; }
-</style>
+  #recOverlay { position:fixed; inset:0; z-index:60; background:rgba(10,12,18,.72); display:flex; align-items:center; justify-content:center; padding:12px; }
+  #recPanel { position:relative; width:min(720px,94vw); height:min(620px,92vh); background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.5); overflow:hidden; }
+  #recFrame { width:100%; height:100%; border:none; background:#fff; }
+  #recClose { position:absolute; top:8px; right:10px; z-index:2; width:34px; height:34px; border:none; border-radius:50%; background:#14181f; color:#fff; font-size:18px; line-height:1; cursor:pointer; opacity:.9; }</style>
 </head>
 <body>
   <button id="calBtn" onclick="toggleCal()">Calibrate</button>
@@ -88,7 +91,12 @@
   <div class="screen artfull hidden" id="unitScreen"><div class="stage" id="unitStage"></div></div>
   <div class="screen artfull hidden" id="hubScreen"><div class="stage" id="hubStage"></div></div>
   <div class="screen artfull hidden" id="slidesScreen"><div class="stage" id="slidesStage"></div></div>
-  <div id="toast"></div>
+  <div id="toast"></div>  <div id="recOverlay" class="hidden" onclick="if(event.target===this)closeRecorder()">
+    <div id="recPanel">
+      <button id="recClose" onclick="closeRecorder()" aria-label="Close">&times;</button>
+      <iframe id="recFrame" allow="microphone" src="about:blank"></iframe>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -256,7 +264,20 @@
       if(curAudio&&!curAudio.paused){ curAudio.pause(); curAudio.currentTime=0; return; }
       try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"speak",text:text,lang:lang})}); const d=await r.json(); if(d.audio){ curAudio=new Audio("data:audio/mp3;base64,"+d.audio); curAudio.play(); } }catch(e){}
     }
-    function record(){ window.open(RECORDER_URL+"?slide="+curS().recorder_slide,"lmnRecorder","width=720,height=560"); }
+       function record(){ openRecorder(curS().recorder_slide); }
+    function openRecorder(slide){
+      const ov=document.getElementById("recOverlay"), fr=document.getElementById("recFrame");
+      fr.src = RECORDER_URL + "?slide=" + encodeURIComponent(slide);
+      ov.classList.remove("hidden");
+    }
+    function closeRecorder(){
+      const ov=document.getElementById("recOverlay"), fr=document.getElementById("recFrame");
+      ov.classList.add("hidden");
+      fr.src = "about:blank";   // unloads the recorder → releases the microphone
+    }
+    window.addEventListener("message", function(e){
+      if(e && e.data && (e.data==="lmnRecorderDone" || (e.data && e.data.type==="lmnRecorderDone"))) closeRecorder();
+    });
 
     /* ===== LOGIN + PROGRESS ===== */
     async function doLogin(){
