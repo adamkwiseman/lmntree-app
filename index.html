@@ -58,6 +58,9 @@
   #recBtn:hover { transform:scale(1.04); filter:brightness(1.06); }
   #phoneMedia { background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#667; font-size:1vw; }
   #phoneMedia video, #phoneMedia img { width:100%; height:100%; object-fit:contain; }
+  #playToggle { position:absolute; display:flex; align-items:center; justify-content:center; border:none; border-radius:50%; background:rgba(20,24,31,.72); color:#fff; cursor:pointer; padding:0; aspect-ratio:1/1; }
+  #playToggle svg { width:56%; height:56%; fill:#fff; }
+  #playToggle:hover { background:rgba(20,24,31,.9); }
   body.cal .zone { background:rgba(47,111,237,.30)!important; outline:2px dashed #fff; }
   body.cal .ovl { outline:2px dashed #e53935; }
   body.cal #pointsBox { outline:2px dashed #e53935; background:rgba(229,57,53,.25); }
@@ -233,7 +236,7 @@
     }
 
     /* ===== CUE CARDS (calibrated positions) ===== */
-    const CARD={ phrase:{left:23.5,top:29,width:34,height:12}, trans:{left:20,top:45.5,width:40,height:20}, phone:{left:71,top:30,width:18.5,height:56}, prev:{left:1,top:43,width:8,height:14,n:"PREV"}, next:{left:91,top:43,width:8,height:14,n:"NEXT"}, sayit:{left:35.5,top:76.5,width:10,height:9,n:"LISTEN & SAY IT"}, rec:{left:36.5,top:70,width:8,n:"RECORD"}, back:{left:0.5,top:0.5,width:12,height:8,n:"BACK"} };
+    const CARD={ phrase:{left:23.5,top:29,width:34,height:12}, trans:{left:20,top:45.5,width:40,height:20}, phone:{left:71,top:30,width:18.5,height:56}, prev:{left:1,top:43,width:8,height:14,n:"PREV"}, next:{left:91,top:43,width:8,height:14,n:"NEXT"}, sayit:{left:35.5,top:76.5,width:10,height:9,n:"LISTEN & SAY IT"}, rec:{left:36.5,top:70,width:8,n:"RECORD"},  back:{left:0.5,top:0.5,width:12,height:8,n:"BACK"}, playbtn:{left:75.75,top:88,width:9,height:9,n:"PLAY"} };
     const LANGS='<option value="" selected>\uD83C\uDF10 Translate\u2026</option><optgroup label="Priority"><option value="am">Amharic</option><option value="ar">Arabic</option><option value="bn">Bengali</option><option value="om">Oromo</option><option value="so">Somali</option><option value="ti">Tigrinya</option></optgroup><optgroup label="Other"><option value="es">Spanish</option><option value="fr">French</option><option value="zh-TW">Chinese (Trad.)</option><option value="zh">Chinese (Simp.)</option><option value="vi">Vietnamese</option><option value="ur">Urdu</option><option value="fa">Persian</option><option value="ps">Pashto</option><option value="ne">Nepali</option><option value="my">Burmese</option><option value="tl">Tagalog</option><option value="ru">Russian</option><option value="uk">Ukrainian</option></optgroup>';
     let sIdx=0, curAudio=null;
     async function openSlides(){
@@ -261,7 +264,19 @@
       document.getElementById("enPhrase").textContent="EN: "+s.phrase;
       document.getElementById("langSel").value=""; document.getElementById("transOut").textContent=""; document.getElementById("listenBtn").style.display="none";
       const pm=document.getElementById("phoneMedia"), media=s.phone_media_url;
-      pm.innerHTML = media ? ((s.phone_media_type==="video")?'<video src="'+media+'" controls playsinline></video>':'<img src="'+media+'" alt="">') : "media";
+      pm.innerHTML = media ? ((s.phone_media_type==="video")?'<video id="cardVideo" src="'+media+'" playsinline></video>':'<img src="'+media+'" alt="">') : "media";
+      const oldBtn=document.getElementById("playToggle"); if(oldBtn) oldBtn.remove();
+      if(media && s.phone_media_type==="video"){
+        const b=document.createElement("button");
+        b.id="playToggle"; b.setAttribute("style",pxs(CARD.playbtn));
+        b.innerHTML=PLAY_ICON;
+        b.onclick=togglePlay;
+        document.getElementById("slidesStage").appendChild(b);
+        const v=document.getElementById("cardVideo");
+        v.onplay=function(){ b.innerHTML=PAUSE_ICON; };
+        v.onpause=function(){ b.innerHTML=PLAY_ICON; };
+        v.onended=function(){ b.innerHTML=PLAY_ICON; };
+      }
     }
     function prevSlide(){ if(sIdx>0){ sIdx--; showSlide(); } }
     function nextSlide(){ if(sIdx<currentCards.length-1){ sIdx++; showSlide(); } else { finishLessonAndReturn(); } }
@@ -277,8 +292,10 @@
       if(curAudio&&!curAudio.paused){ curAudio.pause(); curAudio.currentTime=0; return; }
       try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"speak",text:text,lang:lang})}); const d=await r.json(); if(d.audio){ curAudio=new Audio("data:audio/mp3;base64,"+d.audio); curAudio.play(); } }catch(e){}
     }
-       function record(){ openRecorder(curS().recorder_slide); }
-    function openRecorder(slide){
+      const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+      const PAUSE_ICON='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+      function togglePlay(){ const v=document.getElementById("cardVideo"); if(!v) return; if(v.paused) v.play(); else v.pause(); }
+      function openRecorder(slide){
       const ov=document.getElementById("recOverlay"), fr=document.getElementById("recFrame");
       fr.src = RECORDER_URL + "?slide=" + encodeURIComponent(slide);
       ov.classList.remove("hidden");
