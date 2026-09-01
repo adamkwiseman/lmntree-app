@@ -31,7 +31,9 @@
   .stage { position:relative; aspect-ratio:16/9; width:min(100vw, calc(100vh * 1.7778)); background-size:100% 100%; background-position:center; background-repeat:no-repeat; }
   .zone { position:absolute; border:none; background:transparent; cursor:pointer; padding:0; border-radius:12px; }
   .zone.circle { border-radius:50%; }
-  .zone:hover { background:rgba(255,255,255,.16); }
+  .zone:hover { background:rgba(255,255,255,.16); }  
+  .zone.nav { display:flex; align-items:center; justify-content:center; color:#fff; font-size:5vw; font-weight:800; line-height:1; background:rgba(20,24,31,.5); border-radius:50%; text-shadow:0 1px 3px rgba(0,0,0,.55); }
+  .zone.nav:hover { background:rgba(20,24,31,.72); }
   .zone.locked { cursor:not-allowed; background:rgba(10,12,18,.55); }
   .zone.locked:hover { background:rgba(10,12,18,.55); }
   .zone.locked::after { content:"\1F512"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; }
@@ -231,7 +233,7 @@
     }
 
     /* ===== CUE CARDS (calibrated positions) ===== */
-    const CARD={ phrase:{left:23.5,top:29,width:34,height:12}, trans:{left:20,top:45.5,width:40,height:20}, phone:{left:71,top:30,width:18.5,height:56}, prev:{left:11,top:48,width:8,height:14,n:"PREV"}, next:{left:81,top:48,width:8,height:14,n:"NEXT"}, sayit:{left:35.5,top:76.5,width:10,height:9,n:"LISTEN & SAY IT"}, rec:{left:36.5,top:70,width:8,n:"RECORD"}, back:{left:0.5,top:0.5,width:12,height:8,n:"BACK"} };
+    const CARD={ phrase:{left:23.5,top:29,width:34,height:12}, trans:{left:20,top:45.5,width:40,height:20}, phone:{left:71,top:30,width:18.5,height:56}, prev:{left:1,top:43,width:8,height:14,n:"PREV"}, next:{left:91,top:43,width:8,height:14,n:"NEXT"}, sayit:{left:35.5,top:76.5,width:10,height:9,n:"LISTEN & SAY IT"}, rec:{left:36.5,top:70,width:8,n:"RECORD"}, back:{left:0.5,top:0.5,width:12,height:8,n:"BACK"} };
     const LANGS='<option value="" selected>\uD83C\uDF10 Translate\u2026</option><optgroup label="Priority"><option value="am">Amharic</option><option value="ar">Arabic</option><option value="bn">Bengali</option><option value="om">Oromo</option><option value="so">Somali</option><option value="ti">Tigrinya</option></optgroup><optgroup label="Other"><option value="es">Spanish</option><option value="fr">French</option><option value="zh-TW">Chinese (Trad.)</option><option value="zh">Chinese (Simp.)</option><option value="vi">Vietnamese</option><option value="ur">Urdu</option><option value="fa">Persian</option><option value="ps">Pashto</option><option value="ne">Nepali</option><option value="my">Burmese</option><option value="tl">Tagalog</option><option value="ru">Russian</option><option value="uk">Ukrainian</option></optgroup>';
     let sIdx=0, curAudio=null;
     async function openSlides(){
@@ -246,8 +248,8 @@
       h+='<div class="ovl" id="phraseBox" style="'+pxs(CARD.phrase)+'"></div>';
       h+='<div class="ovl" id="transPanel" style="'+pxs(CARD.trans)+'"><div class="en" id="enPhrase"></div><select id="langSel" onchange="doTranslate()">'+LANGS+'</select><div class="out" id="transOut"></div><button class="listen" id="listenBtn" style="display:none" onclick="doListen()">\uD83D\uDD0A Listen</button></div>';
       h+='<div class="ovl" id="phoneMedia" style="'+pxs(CARD.phone)+'"></div>';
-      h+='<button class="zone" data-n="'+CARD.prev.n+'" style="'+pxs(CARD.prev)+'" onclick="prevSlide()"></button>';
-      h+='<button class="zone" data-n="'+CARD.next.n+'" style="'+pxs(CARD.next)+'" onclick="nextSlide()"></button>';
+      h+='<button class="zone nav" data-n="'+CARD.prev.n+'" style="'+pxs(CARD.prev)+'" onclick="prevSlide()">‹</button>';
+      h+='<button class="zone nav" data-n="'+CARD.next.n+'" style="'+pxs(CARD.next)+'" onclick="nextSlide()">›</button>';
       h+='<button class="zone" data-n="'+CARD.sayit.n+'" style="'+pxs(CARD.sayit)+'" onclick="record()"></button>';
       h+='<button id="recBtn" data-n="'+CARD.rec.n+'" style="left:'+CARD.rec.left+'%; top:'+CARD.rec.top+'%; width:'+CARD.rec.width+'%; background-image:url('+BADGE_IMG+');" onclick="record()"></button>';
       h+='<button class="zone" data-n="'+CARD.back.n+'" style="'+pxs(CARD.back)+'" onclick="showCard(\'hubScreen\')"></button>';
