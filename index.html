@@ -45,7 +45,7 @@
   #loginPanel button.go { width:100%; border:none; border-radius:9px; padding:11px; font:inherit; font-size:15px; background:#2f6fed; color:#fff; cursor:pointer; }
   #loginPanel button.link { background:none; border:none; color:#2f6fed; cursor:pointer; font:inherit; font-size:13px; margin-top:8px; }
   #loginPanel .st { min-height:18px; margin-top:8px; font-size:13px; color:#c0392b; }
-  #pointsBox { position:absolute; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:800; color:#2b3a52; pointer-events:none; font-size:2.4vw; }
+  #pointsBox { position:absolute; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:0; color:#2b3a52; pointer-events:none; font-size:2.4vw; }
   #hubVideo { position:absolute; background:#000; overflow:hidden; }
   #hubVideo video { width:100%; height:100%; object-fit:cover; }
   #phraseBox { font-family:"Andika",cursive; font-weight:700; color:#1a2230; font-size:5vw; line-height:1.05; display:flex; align-items:center; justify-content:center; text-align:center; }
@@ -64,7 +64,7 @@
   body.cal .zone { background:rgba(47,111,237,.30)!important; outline:2px dashed #fff; }
   body.cal .ovl { outline:2px dashed #e53935; }
   body.cal #pointsBox { outline:2px dashed #e53935; background:rgba(229,57,53,.25); }
-  body.cal .zone::before { content:attr(data-n); position:absolute; top:2px; left:4px; color:#fff; font-size:12px; font-weight:800; text-shadow:0 1px 2px #000; }
+  body.cal .zone::before { content:attr(data-n); position:absolute; top:2px; left:4px; color:#fff; font-size:12px; font-weight:0; text-shadow:0 1px 2px #000; }
   body.cal #recBtn { outline:2px dashed #fff; }
   #calBtn { position:fixed; top:10px; left:10px; z-index:40; font:inherit; font-size:13px; cursor:pointer; background:#14181f; color:#fff; border:none; border-radius:8px; padding:8px 12px; opacity:.85; }
   #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#14181f; color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:40; }
@@ -121,7 +121,7 @@
 
     const WHEEL_IMG   = "https://res.cloudinary.com/dvokel99y/image/upload/v1786859227/YAAAAAAAAAAAYYYYYYYYYYYYYYYYYY_bskthl.png";
     const CUE_CARD_BG = "https://res.cloudinary.com/dvokel99y/image/upload/v1786867154/BEST_study_card_background_august_cxiok6.png";
-    const FUNCTION_URL = "https://us-central1-eco-groove-475802-i4.cloudfunctions.net/lmn-translate";
+    const FUNCTION_URL = "https://us-central1-eco-groove-4752-i4.cloudfunctions.net/lmn-translate";
     const RECORDER_URL = "https://adamkwiseman.github.io/lmn-recorder/lmn_recorder_final.html";
     const BADGE_IMG    = "https://res.cloudinary.com/dvokel99y/image/upload/v1786871243/transparent_speak_and_listen_dfd0f6.png";
 
@@ -236,7 +236,7 @@
     }
 
     /* ===== CUE CARDS (calibrated positions) ===== */
-    const CARD={ phrase:{left:23.5,top:29,width:34,height:12}, trans:{left:20,top:45.5,width:40,height:20}, phone:{left:71,top:23,width:18.5,height:56}, prev:{left:1,top:43,width:8,height:14,n:"PREV"}, next:{left:91,top:43,width:8,height:14,n:"NEXT"}, sayit:{left:35.5,top:76.5,width:10,height:9,n:"LISTEN & SAY IT"}, rec:{left:36.5,top:70,width:8,n:"RECORD"},  back:{left:0.5,top:0.5,width:12,height:8,n:"BACK"}, playbtn:{left:75.75,top:80,width:9,height:9,n:"PLAY"} };
+    const CARD={ phrase:{left:23.5,top:29,width:34,height:12}, trans:{left:20,top:45.5,width:40,height:20}, phone:{left:71,top:23,width:18.5,height:56}, prev:{left:1,top:43,width:8,height:14,n:"PREV"}, next:{left:91,top:43,width:8,height:14,n:"NEXT"}, sayit:{left:35.5,top:76.5,width:10,height:9,n:"LISTEN & SAY IT"}, rec:{left:36.5,top:70,width:8,n:"RECORD"},  back:{left:0.5,top:0.5,width:12,height:8,n:"BACK"}, playbtn:{left:75.75,top:79,width:9,height:9,n:"PLAY"} };
     const LANGS='<option value="" selected>\uD83C\uDF10 Translate\u2026</option><optgroup label="Priority"><option value="am">Amharic</option><option value="ar">Arabic</option><option value="bn">Bengali</option><option value="om">Oromo</option><option value="so">Somali</option><option value="ti">Tigrinya</option></optgroup><optgroup label="Other"><option value="es">Spanish</option><option value="fr">French</option><option value="zh-TW">Chinese (Trad.)</option><option value="zh">Chinese (Simp.)</option><option value="vi">Vietnamese</option><option value="ur">Urdu</option><option value="fa">Persian</option><option value="ps">Pashto</option><option value="ne">Nepali</option><option value="my">Burmese</option><option value="tl">Tagalog</option><option value="ru">Russian</option><option value="uk">Ukrainian</option></optgroup>';
     let sIdx=0, curAudio=null;
     async function openSlides(){
