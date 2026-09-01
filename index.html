@@ -45,7 +45,7 @@
   #loginPanel button.go { width:100%; border:none; border-radius:9px; padding:11px; font:inherit; font-size:15px; background:#2f6fed; color:#fff; cursor:pointer; }
   #loginPanel button.link { background:none; border:none; color:#2f6fed; cursor:pointer; font:inherit; font-size:13px; margin-top:8px; }
   #loginPanel .st { min-height:18px; margin-top:8px; font-size:13px; color:#c0392b; }
-  #pointsBox { position:absolute; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:0; color:#2b3a52; pointer-events:none; font-size:2.4vw; }
+  #pointsBox { position:absolute; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:800; color:#2b3a52; pointer-events:none; font-size:2.4vw; }
   #hubVideo { position:absolute; background:#000; overflow:hidden; }
   #hubVideo video { width:100%; height:100%; object-fit:cover; }
   #phraseBox { font-family:"Andika",cursive; font-weight:700; color:#1a2230; font-size:5vw; line-height:1.05; display:flex; align-items:center; justify-content:center; text-align:center; }
@@ -64,7 +64,7 @@
   body.cal .zone { background:rgba(47,111,237,.30)!important; outline:2px dashed #fff; }
   body.cal .ovl { outline:2px dashed #e53935; }
   body.cal #pointsBox { outline:2px dashed #e53935; background:rgba(229,57,53,.25); }
-  body.cal .zone::before { content:attr(data-n); position:absolute; top:2px; left:4px; color:#fff; font-size:12px; font-weight:0; text-shadow:0 1px 2px #000; }
+  body.cal .zone::before { content:attr(data-n); position:absolute; top:2px; left:4px; color:#fff; font-size:12px; font-weight:800; text-shadow:0 1px 2px #000; }
   body.cal #recBtn { outline:2px dashed #fff; }
   #calBtn { position:fixed; top:10px; left:10px; z-index:40; font:inherit; font-size:13px; cursor:pointer; background:#14181f; color:#fff; border:none; border-radius:8px; padding:8px 12px; opacity:.85; }
   #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#14181f; color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:40; }
@@ -121,7 +121,7 @@
 
     const WHEEL_IMG   = "https://res.cloudinary.com/dvokel99y/image/upload/v1786859227/YAAAAAAAAAAAYYYYYYYYYYYYYYYYYY_bskthl.png";
     const CUE_CARD_BG = "https://res.cloudinary.com/dvokel99y/image/upload/v1786867154/BEST_study_card_background_august_cxiok6.png";
-    const FUNCTION_URL = "https://us-central1-eco-groove-4752-i4.cloudfunctions.net/lmn-translate";
+    const FUNCTION_URL = "https://us-central1-eco-groove-47502-i4.cloudfunctions.net/lmn-translate";
     const RECORDER_URL = "https://adamkwiseman.github.io/lmn-recorder/lmn_recorder_final.html";
     const BADGE_IMG    = "https://res.cloudinary.com/dvokel99y/image/upload/v1786871243/transparent_speak_and_listen_dfd0f6.png";
 
@@ -294,7 +294,8 @@
     }
       const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
       const PAUSE_ICON='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
-      function togglePlay(){ const v=document.getElementById("cardVideo"); if(!v) return; if(v.paused) v.play(); else v.pause(); }
+     function togglePlay(){ const v=document.getElementById("cardVideo"); if(!v) return; if(v.paused) v.play(); else v.pause(); }
+      function record(){ openRecorder(curS().recorder_slide); }
       function openRecorder(slide){
       const ov=document.getElementById("recOverlay"), fr=document.getElementById("recFrame");
       fr.src = RECORDER_URL + "?slide=" + encodeURIComponent(slide);
