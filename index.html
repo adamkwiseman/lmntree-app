@@ -289,7 +289,6 @@
       out.textContent="Translating\u2026"; lb.style.display="none";
       try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"translate",text:curS().phrase,lang:lang})}); const d=await r.json(); if(forIdx!==sIdx) return; if(d.translation){ out.textContent=d.translation; lb.style.display="inline-block"; } else out.textContent="No translation."; }catch(e){ if(forIdx===sIdx) out.textContent="Translation unavailable."; }
     }
-    }
     async function doListen(){
       const lang=document.getElementById("langSel").value, text=document.getElementById("transOut").textContent;
       if(!lang||!text) return;
