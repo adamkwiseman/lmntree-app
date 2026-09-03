@@ -135,7 +135,7 @@
     /* session / live data */
     let currentStudent=null, doneLessons=[];
     let currentUnit=null, lessonsByNumber={}, currentLesson=null, currentCards=[];
-
+    let currentLang=""; try{ currentLang=localStorage.getItem("lmnLang")||""; }catch(e){ currentLang=""; }
     document.getElementById("pickerStage").style.backgroundImage='url("'+WHEEL_IMG+'")';
     document.getElementById("slidesStage").style.backgroundImage='url("'+CUE_CARD_BG+'")';
 
@@ -262,7 +262,8 @@
       const s=curS();
       document.getElementById("phraseBox").textContent=s.phrase;
       document.getElementById("enPhrase").textContent="EN: "+s.phrase;
-      document.getElementById("langSel").value=""; document.getElementById("transOut").textContent=""; document.getElementById("listenBtn").style.display="none";
+      document.getElementById("langSel").value=currentLang; document.getElementById("transOut").textContent=""; document.getElementById("listenBtn").style.display="none";
+      if(currentLang) doTranslate();
       const pm=document.getElementById("phoneMedia"), media=s.phone_media_url;
       pm.innerHTML = media ? ((s.phone_media_type==="video")?'<video id="cardVideo" src="'+media+'" playsinline></video>':'<img src="'+media+'" alt="">') : "media";
       const oldBtn=document.getElementById("playToggle"); if(oldBtn) oldBtn.remove();
@@ -280,11 +281,14 @@
     }
     function prevSlide(){ if(sIdx>0){ sIdx--; showSlide(); } }
     function nextSlide(){ if(sIdx<currentCards.length-1){ sIdx++; showSlide(); } else { finishLessonAndReturn(); } }
-    async function doTranslate(){
+      async function doTranslate(){
       const lang=document.getElementById("langSel").value, out=document.getElementById("transOut"), lb=document.getElementById("listenBtn");
+      currentLang=lang; try{ localStorage.setItem("lmnLang",lang); }catch(e){}
       if(!lang){ out.textContent=""; lb.style.display="none"; return; }
+      const forIdx=sIdx;
       out.textContent="Translating\u2026"; lb.style.display="none";
-      try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"translate",text:curS().phrase,lang:lang})}); const d=await r.json(); if(d.translation){ out.textContent=d.translation; lb.style.display="inline-block"; } else out.textContent="No translation."; }catch(e){ out.textContent="Translation unavailable."; }
+      try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"translate",text:curS().phrase,lang:lang})}); const d=await r.json(); if(forIdx!==sIdx) return; if(d.translation){ out.textContent=d.translation; lb.style.display="inline-block"; } else out.textContent="No translation."; }catch(e){ if(forIdx===sIdx) out.textContent="Translation unavailable."; }
+    }
     }
     async function doListen(){
       const lang=document.getElementById("langSel").value, text=document.getElementById("transOut").textContent;
