@@ -273,10 +273,12 @@
         document.getElementById("langSel").value=currentLang; document.getElementById("transOut").textContent=""; document.getElementById("listenBtn").style.display="none";
         if(currentLang) doTranslate();
       }
-      const pm=document.getElementById("phoneMedia"), media=s.phone_media_url;
-      pm.innerHTML = media ? ((s.phone_media_type==="video")?'<video id="cardVideo" src="'+media+'" playsinline></video>':'<img src="'+media+'" alt="">') : "media";
+      const media=s.phone_media_url, pm=document.getElementById("phoneMedia");
+      const mt=(s.phone_media_type||"").toLowerCase().trim();
+      const isVideo = !!media && ( mt.indexOf("video")>-1 || ( mt!=="image" && mt!=="img" && /\.(mp4|m4v|mov|webm|ogv)(\?|#|$)/i.test(media) ) );
+      pm.innerHTML = media ? (isVideo ? '<video id="cardVideo" src="'+media+'" playsinline webkit-playsinline preload="metadata"></video>' : '<img src="'+media+'" alt="">') : "media";
       const oldBtn=document.getElementById("playToggle"); if(oldBtn) oldBtn.remove();
-      if(media && s.phone_media_type==="video"){
+      if(isVideo){
         const b=document.createElement("button");
         b.id="playToggle"; b.setAttribute("style",pxs(CARD.playbtn));
         b.innerHTML=PLAY_ICON;
@@ -288,7 +290,7 @@
         v.onended=function(){ b.innerHTML=PLAY_ICON; };
       }
     }
-    function prevSlide(){ if(sIdx>0){ sIdx--; showSlide(); } }
+    function prevSlide(){ if(sIdx>0){ sIdx--; } else { sIdx=currentCards.length-1; } showSlide(); }
     function nextSlide(){ if(sIdx<currentCards.length-1){ sIdx++; showSlide(); } else { finishLessonAndReturn(); } }
       async function doTranslate(){
       const lang=document.getElementById("langSel").value, out=document.getElementById("transOut"), lb=document.getElementById("listenBtn");
