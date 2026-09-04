@@ -49,6 +49,9 @@
   #hubVideo { position:absolute; background:#000; overflow:hidden; }
   #hubVideo video { width:100%; height:100%; object-fit:cover; }
   #phraseBox { font-family:"Andika",cursive; font-weight:700; color:#1a2230; font-size:5vw; line-height:1.05; display:flex; align-items:center; justify-content:center; text-align:center; }
+    #phraseBox .wp { text-align:center; }
+  #phraseBox .wtap { cursor:pointer; border-radius:6px; padding:0 .04em; transition:background .1s; }
+  #phraseBox .wtap:hover { background:rgba(47,111,237,.16); } #phraseBox .wtap:active { background:rgba(47,111,237,.32); }
   #transPanel { background:rgba(255,255,255,.92); border:1px solid #dfe6f0; border-radius:10px; padding:.7vw .8vw; display:flex; flex-direction:column; gap:.4vw; overflow:auto; }
   #transPanel .en { color:#2f6fed; font-weight:700; font-size:.95vw; }
   #transPanel select { font:inherit; font-size:1vw; padding:.35vw; border:1px solid #cfd7e3; border-radius:7px; }
@@ -260,7 +263,7 @@
     }
     function showSlide(){
       const s=curS();
-      document.getElementById("phraseBox").textContent=s.phrase;
+      renderClickablePhrase(document.getElementById("phraseBox"), s.phrase);
       document.getElementById("enPhrase").textContent="EN: "+s.phrase;
       document.getElementById("langSel").value=currentLang; document.getElementById("transOut").textContent=""; document.getElementById("listenBtn").style.display="none";
       if(currentLang) doTranslate();
@@ -295,7 +298,22 @@
       if(curAudio&&!curAudio.paused){ curAudio.pause(); curAudio.currentTime=0; return; }
       try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"speak",text:text,lang:lang})}); const d=await r.json(); if(d.audio){ curAudio=new Audio("data:audio/mp3;base64,"+d.audio); curAudio.play(); } }catch(e){}
     }
-      const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+      const PLAY_ICON='    function speakWord(w){
+      try{ if(!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(w); u.lang="en-US"; u.rate=0.9; window.speechSynthesis.speak(u); }catch(e){}
+    }
+    function renderClickablePhrase(el, phrase){
+      el.innerHTML="";
+      const wrap=document.createElement("span"); wrap.className="wp";
+      String(phrase).split(/(\s+)/).forEach(function(tok){
+        if(tok==="") return;
+        if(/^\s+$/.test(tok)){ wrap.appendChild(document.createTextNode(tok)); return; }
+        const clean=tok.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,"");
+        const sp=document.createElement("span"); sp.className="wtap"; sp.textContent=tok;
+        sp.onclick=function(){ speakWord(clean||tok); };
+        wrap.appendChild(sp);
+      });
+      el.appendChild(wrap);
+    }<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
       const PAUSE_ICON='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
      function togglePlay(){ const v=document.getElementById("cardVideo"); if(!v) return; if(v.paused) v.play(); else v.pause(); }
       function record(){ openRecorder(curS().recorder_slide); }
