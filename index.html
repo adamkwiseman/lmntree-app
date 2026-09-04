@@ -227,10 +227,21 @@
     }
 
     /* ===== LESSON HUB (calibrated positions) ===== */
-    const HUB={ video:{left:1.8,top:2.8,width:50.5,height:56,n:"VIDEO"}, listen:{left:57.5,top:28,width:41,height:17,n:"LISTEN & SPEAK"}, games:{left:57.5,top:47,width:41,height:17,n:"PRACTICE GAMES"}, read:{left:57.5,top:66,width:41,height:17,n:"READ & WRITE"}, home:{left:1.5,top:85,width:7,height:13,n:"HOME"} };
+    const HUB={ video:video:{left:1.8,top:2.8,width:48.0,height:53.2,n:"VIDEO"}, listen:{left:57.5,top:28,width:41,height:17,n:"LISTEN & SPEAK"}, games:{left:57.5,top:47,width:41,height:17,n:"PRACTICE GAMES"}, read:{left:57.5,top:66,width:41,height:17,n:"READ & WRITE"}, home:{left:1.5,top:85,width:7,height:13,n:"HOME"} };
+    function videoPoster(url){
+      if(url && url.indexOf("/video/upload/")>-1){
+        return url.replace("/video/upload/","/video/upload/so_0/").replace(/\.(mp4|mov|webm|m4v|ogv)(\?|#|$)/i,".jpg");
+      }
+      return "";
+    }
     function buildHub(){
       let h="";
-      h+='<button class="zone" data-n="'+HUB.video.n+'" style="'+pxs(HUB.video)+'" onclick="playHubVideo()"></button>';
+      const _vurl = currentLesson && currentLesson.video_url;
+      if(_vurl){
+        h+='<div id="hubVideo" style="'+pxs(HUB.video)+'"><video src="'+_vurl+'" poster="'+videoPoster(_vurl)+'" controls playsinline preload="none"></video></div>';
+      } else {
+        h+='<button class="zone" data-n="'+HUB.video.n+'" style="'+pxs(HUB.video)+'" onclick="playHubVideo()"></button>';
+      }
       h+='<button class="zone" data-n="'+HUB.listen.n+'" style="'+pxs(HUB.listen)+'" onclick="openSlides()"></button>';
       h+='<button class="zone" data-n="'+HUB.games.n+'" style="'+pxs(HUB.games)+'" onclick="toast(\'Practice Games \u2014 coming later\')"></button>';
       h+='<button class="zone" data-n="'+HUB.read.n+'" style="'+pxs(HUB.read)+'" onclick="toast(\'Read & Write \u2014 coming later\')"></button>';
