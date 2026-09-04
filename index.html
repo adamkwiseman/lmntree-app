@@ -298,7 +298,7 @@
       if(curAudio&&!curAudio.paused){ curAudio.pause(); curAudio.currentTime=0; return; }
       try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"speak",text:text,lang:lang})}); const d=await r.json(); if(d.audio){ curAudio=new Audio("data:audio/mp3;base64,"+d.audio); curAudio.play(); } }catch(e){}
     }
-      const PLAY_ICON='    function speakWord(w){
+    function speakWord(w){
       try{ if(!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(w); u.lang="en-US"; u.rate=0.9; window.speechSynthesis.speak(u); }catch(e){}
     }
     function renderClickablePhrase(el, phrase){
@@ -313,7 +313,8 @@
         wrap.appendChild(sp);
       });
       el.appendChild(wrap);
-    }<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    }
+      const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
       const PAUSE_ICON='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
      function togglePlay(){ const v=document.getElementById("cardVideo"); if(!v) return; if(v.paused) v.play(); else v.pause(); }
       function record(){ openRecorder(curS().recorder_slide); }
