@@ -291,7 +291,21 @@
       }
     }
     function prevSlide(){ if(sIdx>0){ sIdx--; } else { sIdx=currentCards.length-1; } showSlide(); }
-    function nextSlide(){ if(sIdx<currentCards.length-1){ sIdx++; showSlide(); } else { finishLessonAndReturn(); } }
+    function nextSlide(){
+      if(sIdx<currentCards.length-1){ sIdx++; showSlide(); }
+      else { markLessonComplete(); sIdx=0; showSlide(); }
+    }
+    async function markLessonComplete(){
+      if(!currentLesson) return;
+      const lid=String(currentLesson.id);
+      if(doneLessons.includes(lid)) return;
+      doneLessons.push(lid);            // optimistic: also blocks a double-insert if they loop fast
+      renderUnit();                     // refresh the (hidden) grid so the next lesson is unlocked on return
+      if(!db || !currentStudent) return;
+      const { error } = await db.from("progress").insert({ student_id:currentStudent.id, lesson_id:lid, status:"completed" });
+      if(error){ console.error(error); return; }
+      toast("Lesson complete! \u2713");
+    }
       async function doTranslate(){
       const lang=document.getElementById("langSel").value, out=document.getElementById("transOut"), lb=document.getElementById("listenBtn");
       currentLang=lang; try{ localStorage.setItem("lmnLang",lang); }catch(e){}
