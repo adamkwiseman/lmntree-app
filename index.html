@@ -265,8 +265,14 @@
       const s=curS();
       renderClickablePhrase(document.getElementById("phraseBox"), s.phrase);
       document.getElementById("enPhrase").textContent="EN: "+s.phrase;
-      document.getElementById("langSel").value=currentLang; document.getElementById("transOut").textContent=""; document.getElementById("listenBtn").style.display="none";
-      if(currentLang) doTranslate();
+      const tp=document.getElementById("transPanel");
+      if(s.skip_translate){
+        tp.style.display="none";
+      } else {
+        tp.style.display="";
+        document.getElementById("langSel").value=currentLang; document.getElementById("transOut").textContent=""; document.getElementById("listenBtn").style.display="none";
+        if(currentLang) doTranslate();
+      }
       const pm=document.getElementById("phoneMedia"), media=s.phone_media_url;
       pm.innerHTML = media ? ((s.phone_media_type==="video")?'<video id="cardVideo" src="'+media+'" playsinline></video>':'<img src="'+media+'" alt="">') : "media";
       const oldBtn=document.getElementById("playToggle"); if(oldBtn) oldBtn.remove();
