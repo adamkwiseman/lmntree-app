@@ -227,7 +227,7 @@
     }
 
     /* ===== LESSON HUB (calibrated positions) ===== */
-    const HUB={ video:video:{left:1.8,top:2.8,width:48.0,height:53.2,n:"VIDEO"}, listen:{left:57.5,top:28,width:41,height:17,n:"LISTEN & SPEAK"}, games:{left:57.5,top:47,width:41,height:17,n:"PRACTICE GAMES"}, read:{left:57.5,top:66,width:41,height:17,n:"READ & WRITE"}, home:{left:1.5,top:85,width:7,height:13,n:"HOME"} };
+    const HUB={ video:{left:1.8,top:2.8,width:48.0,height:53.2,n:"VIDEO"}, listen:{left:57.5,top:28,width:41,height:17,n:"LISTEN & SPEAK"}, games:{left:57.5,top:47,width:41,height:17,n:"PRACTICE GAMES"}, read:{left:57.5,top:66,width:41,height:17,n:"READ & WRITE"}, home:{left:1.5,top:85,width:7,height:13,n:"HOME"} };
     function videoPoster(url){
       if(url && url.indexOf("/video/upload/")>-1){
         return url.replace("/video/upload/","/video/upload/so_0/").replace(/\.(mp4|mov|webm|m4v|ogv)(\?|#|$)/i,".jpg");
