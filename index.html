@@ -52,7 +52,10 @@
     #phraseBox .wp { text-align:center; }
   #phraseBox .wtap { cursor:pointer; border-radius:6px; padding:0 .04em; transition:background .1s; }
   #phraseBox .wtap:hover { background:rgba(47,111,237,.16); } #phraseBox .wtap:active { background:rgba(47,111,237,.32); }
-  #transPanel { background:rgba(255,255,255,.92); border:1px solid #dfe6f0; border-radius:10px; padding:.7vw .8vw; display:flex; flex-direction:column; gap:.4vw; overflow:auto; }
+  #transPanel { background:rgba(255,255,255,.92); border:1px solid #dfe6f0; border-radius:10px; padding:.6vw .8vw; display:flex; flex-direction:column; justify-content:center; gap:.4vw; overflow:visible; }
+  #transPanel .en { display:none; }
+  #transPanel .trow { display:flex; align-items:center; gap:.7vw; }
+  #transPanel .out { flex:1; }
   #transPanel .en { color:#2f6fed; font-weight:700; font-size:.95vw; }
   #transPanel select { font:inherit; font-size:1vw; padding:.35vw; border:1px solid #cfd7e3; border-radius:7px; }
   #transPanel .out { font-weight:700; color:#2b3a52; min-height:1.2em; font-size:1.15vw; }
@@ -278,8 +281,8 @@
     function buildSlides(){
       let h="";
       h+='<div class="ovl" id="phraseBox" style="'+pxs(CARD.phrase)+'"></div>';
-      h+='<div class="ovl" id="transPanel" style="'+pxs(CARD.trans)+'"><div class="en" id="enPhrase"></div><select id="langSel" onchange="doTranslate()">'+LANGS+'</select><div class="out" id="transOut"></div><button class="listen" id="listenBtn" style="display:none" onclick="doListen()">\uD83D\uDD0A Listen</button></div>';
-      h+='<button id="xlateBtn" data-n="'+CARD.xlate.n+'" style="left:'+CARD.xlate.left+'%; top:'+CARD.xlate.top+'%; width:'+CARD.xlate.width+'%; background-image:url('+XLATE_IMG+');" onclick="toggleTranslate()"></button>';
+      h+='<div class="ovl" id="transPanel" style="'+pxs(CARD.trans)+'"><div class="en" id="enPhrase"></div><select id="langSel" onchange="doTranslate()">'+LANGS+'</select><div class="trow"><div class="out" id="transOut"></div><button class="listen" id="listenBtn" style="display:none" onclick="doListen()">\uD83D\uDD0A Listen</button></div></div>';
+      h+='<button id="xlateBtn" data-n="'+CARD.xlate.n+'" style="left:'+CARD.xlate.left+'%; top:'+CARD.xlate.top+'%; width:'+CARD.xlate.width+'%;" onclick="toggleTranslate()"></button>';
       h+='<div class="ovl" id="phoneMedia" style="'+pxs(CARD.phone)+'"></div>';
       h+='<button class="zone nav" data-n="'+CARD.prev.n+'" style="'+pxs(CARD.prev)+'" onclick="prevSlide()">‹</button>';
       h+='<button class="zone nav" data-n="'+CARD.next.n+'" style="'+pxs(CARD.next)+'" onclick="nextSlide()">›</button>';
