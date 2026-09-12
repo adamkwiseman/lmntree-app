@@ -303,7 +303,7 @@
       document.getElementById("transOut").textContent="";
       document.getElementById("listenBtn").style.display="none";
       if(xb) xb.style.display = s.skip_translate ? "none" : "";
-      const irf=document.getElementById("inlineRec"); if(irf){ irf.src = RECORDER_URL + "?slide=" + encodeURIComponent(s.recorder_slide||""); }
+      setRecSrc();
       const media=s.phone_media_url, pm=document.getElementById("phoneMedia");
       const mt=(s.phone_media_type||"").toLowerCase().trim();
       const isVideo = !!media && ( mt.indexOf("video")>-1 || ( mt!=="image" && mt!=="img" && /\.(mp4|m4v|mov|webm|ogv)(\?|#|$)/i.test(media) ) );
@@ -418,8 +418,9 @@ function toggleTranslate(){
       doneLessons.push(lid); renderUnit(); showCard("unitScreen"); toast("Lesson complete! \u2713");
     }
 
-    function toggleCal(){ document.body.classList.toggle("cal"); sendCal(); }
+    function toggleCal(){ document.body.classList.toggle("cal"); sendCal(); setRecSrc(); }
     function sendCal(){ var f=document.getElementById("inlineRec"); if(f&&f.contentWindow){ try{ f.contentWindow.postMessage({type:"lmnCal", on:document.body.classList.contains("cal")}, "*"); }catch(e){} } }
+    function setRecSrc(){ var irf=document.getElementById("inlineRec"); if(!irf) return; var s=curS(); if(!s) return; irf.src = RECORDER_URL + "?slide=" + encodeURIComponent(s.recorder_slide||"") + "&cal=" + (document.body.classList.contains("cal")?"1":"0"); }
     function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1600); }
 
     renderPicker();
