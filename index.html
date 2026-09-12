@@ -287,7 +287,7 @@
       h+='<div class="ovl" id="phoneMedia" style="'+pxs(CARD.phone)+'"></div>';
       h+='<button class="zone nav" data-n="'+CARD.prev.n+'" style="'+pxs(CARD.prev)+'" onclick="prevSlide()">‹</button>';
       h+='<button class="zone nav" data-n="'+CARD.next.n+'" style="'+pxs(CARD.next)+'" onclick="nextSlide()">›</button>';
-      h+='<iframe id="inlineRec" allow="microphone" style="'+pxs(CARD.recregion)+' border:none; background:transparent;" src="about:blank"></iframe>';
+      h+='<iframe id="inlineRec" allow="microphone" onload="sendCal()" style="'+pxs(CARD.recregion)+' border:none; background:transparent;" src="about:blank"></iframe>';
       h+='<button id="recBtn" data-n="'+CARD.rec.n+'" style="left:'+CARD.rec.left+'%; top:'+CARD.rec.top+'%; width:'+CARD.rec.width+'%; background-image:url('+BADGE_IMG+');" onclick="record()"></button>';
       h+='<button class="zone" data-n="'+CARD.back.n+'" style="'+pxs(CARD.back)+'" onclick="showCard(\'hubScreen\')"></button>';
       Object.keys(CARDNAV).forEach(function(k){ const b=CARDNAV[k]; h+='<button class="cardnav" data-n="'+b.n+'" style="left:'+b.left+'%; top:'+b.top+'%; width:'+b.width+'%; background-image:url('+b.img+');" onclick="'+b.go+'"></button>'; });
@@ -418,7 +418,8 @@ function toggleTranslate(){
       doneLessons.push(lid); renderUnit(); showCard("unitScreen"); toast("Lesson complete! \u2713");
     }
 
-    function toggleCal(){ document.body.classList.toggle("cal"); }
+    function toggleCal(){ document.body.classList.toggle("cal"); sendCal(); }
+    function sendCal(){ var f=document.getElementById("inlineRec"); if(f&&f.contentWindow){ try{ f.contentWindow.postMessage({type:"lmnCal", on:document.body.classList.contains("cal")}, "*"); }catch(e){} } }
     function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1600); }
 
     renderPicker();
