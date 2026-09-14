@@ -420,7 +420,7 @@ function toggleTranslate(){
 
     function toggleCal(){ document.body.classList.toggle("cal"); sendCal(); setRecSrc(); }
     function sendCal(){ var f=document.getElementById("inlineRec"); if(f&&f.contentWindow){ try{ f.contentWindow.postMessage({type:"lmnCal", on:document.body.classList.contains("cal")}, "*"); }catch(e){} } }
-    function setRecSrc(){ var irf=document.getElementById("inlineRec"); if(!irf) return; var s=curS(); if(!s) return; irf.src = RECORDER_URL + "?slide=" + encodeURIComponent(s.recorder_slide||"") + "&cal=" + (document.body.classList.contains("cal")?"1":"0"); }
+    function setRecSrc(){ var irf=document.getElementById("inlineRec"); if(!irf) return; var s=curS(); if(!s) return; var cal=document.body.classList.contains("cal"); irf.src = RECORDER_URL + "?slide=" + encodeURIComponent(s.recorder_slide||"") + "&cal=" + (cal?"1":"0") + (cal?"&v="+Date.now():""); }
     function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1600); }
 
     renderPicker();
