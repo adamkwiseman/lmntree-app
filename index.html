@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+
+<!--
+
+  ============================================================
+
+  LMN TREE — FULL SHELL (Step 4: reads content from Supabase)
+
+  ============================================================
+
+  Units, lessons, and cards now come LIVE from your database.
+
+  Tap a unit  -> loads its lessons from `lessons`
+
+  Tap a tile  -> loads that lesson (art + video from `lessons`)
+
+  Listen&Speak-> loads that lesson's cards from `cards`
+
+  Finish      -> writes progress (lesson_id = the lesson's DB id)
+
+
+
+  Positions (PICKER/GRID/HUB/CARD/UCTRL) are still hardcoded —
+
+  that's your calibration, unchanged. Only content is now from DB.
+
+
+
+  Add a lesson in Supabase -> it appears here. No code edits.
+
+  ============================================================
+
+-->
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>LMN Tree</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@700&display=swap" rel="stylesheet">
+
+<style>
+
+  * { box-sizing:border-box; } html,body { height:100%; }
+
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:#1a2230; background:#000; }
+
+  .screen { min-height:100vh; }
+
+  .screen.center { display:flex; align-items:center; justify-content:center; padding:16px; background:#eef2f7; }
+
+  .screen.artfull { display:flex; align-items:center; justify-content:center; background:#000; }
+
+  .hidden { display:none !important; }
+
+  .stage { position:relative; aspect-ratio:16/9; width:min(100vw, calc(100vh * 1.7778)); background-size:100% 100%; background-position:center; background-repeat:no-repeat; }
+
+  .zone { position:absolute; border:none; background:transparent; cursor:pointer; padding:0; border-radius:12px; }
+
+  .zone.circle { border-radius:50%; }
+
+  .zone:hover { background:rgba(255,255,255,.16); }  
+
+  .zone.nav { display:flex; align-items:center; justify-content:center; color:#fff; font-size:5vw; font-weight:800; line-height:1; background:rgba(20,24,31,.5); border-radius:50%; text-shadow:0 1px 3px rgba(0,0,0,.55); }
+
+  .zone.nav:hover { background:rgba(20,24,31,.72); }
+
+  .zone.locked { cursor:not-allowed; background:rgba(10,12,18,.55); }
+
+  .zone.locked:hover { background:rgba(10,12,18,.55); }
+
+  .zone.locked::after { content:"\1F512"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; }
+
+  .zone.done::after { content:"\2713"; position:absolute; top:3%; right:5%; width:20px; height:20px; border-radius:50%; background:#17a06a; color:#fff; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+
+  .ovl { position:absolute; }
+
+  #loginPanel { position:absolute; top:13%; right:1.5%; width:min(300px,44%); background:#fff; border-radius:12px; box-shadow:0 14px 34px rgba(0,0,0,.35); padding:16px; z-index:15; text-align:center; }
+
+  #loginPanel h3 { margin:0 0 4px; font-size:18px; } #loginPanel .hint { margin:0 0 12px; font-size:12px; color:#7c8aa0; }
+
+  #loginPanel input { display:block; width:100%; margin:0 0 10px; padding:10px 12px; font:inherit; font-size:15px; border:1px solid #cfd7e3; border-radius:9px; }
+
+  #loginPanel button.go { width:100%; border:none; border-radius:9px; padding:11px; font:inherit; font-size:15px; background:#2f6fed; color:#fff; cursor:pointer; }
+
+  #loginPanel button.link { background:none; border:none; color:#2f6fed; cursor:pointer; font:inherit; font-size:13px; margin-top:8px; }
+
+  #loginPanel .st { min-height:18px; margin-top:8px; font-size:13px; color:#c0392b; }
+
+  #pointsBox { position:absolute; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:800; color:#2b3a52; pointer-events:none; font-size:2.4vw; }
+
+  #hubVideo { position:absolute; background:#000; overflow:hidden; }
+
+  #hubVideo video { width:100%; height:100%; object-fit:cover; }
+
+  #phraseBand { position:absolute; left:11.66%; top:25.50%; width:54.55%; height:10.63%; background:rgba(150,156,165,.18); pointer-events:none; }
+
+  #phraseBox { font-family:"Andika",cursive; font-weight:700; color:#1a2230; font-size:5vw; line-height:1.05; display:flex; align-items:center; justify-content:center; text-align:center; }
+
+    #phraseBox .wp { text-align:center; }
+
+  #phraseBox .wtap { cursor:pointer; border-radius:6px; padding:0 .04em; transition:background .1s; }
+
+  #phraseBox .wtap:hover { background:rgba(47,111,237,.16); } #phraseBox .wtap:active { background:rgba(47,111,237,.32); }
+
+  #transPanel { background:rgba(255,255,255,.92); border:1px solid #dfe6f0; border-radius:10px; padding:.6vw .8vw; display:flex; flex-direction:column; justify-content:center; gap:.4vw; overflow:visible; }
+
+  #transPanel .en { display:none; }
+
+  #transPanel .trow { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:.4vw .7vw; text-align:center; }
+
+  #transPanel .out { flex:0 1 auto; min-width:0; overflow-wrap:anywhere; text-align:center; }
+
+  #transPanel .en { color:#2f6fed; font-weight:700; font-size:.95vw; }
+
+  #transPanel select { width:100%; min-width:0; text-align:center; font:inherit; font-size:1vw; padding:.35vw; border:1px solid #cfd7e3; border-radius:7px; }
+
+  #transPanel .out { font-weight:700; color:#2b3a52; min-height:1.2em; font-size:1.15vw; }
+
+  #transPanel .listen { align-self:center; flex-shrink:0; border:none; background:#17a06a; color:#fff; border-radius:7px; padding:.35vw .7vw; font:inherit; font-size:.95vw; cursor:pointer; }
+
+  #recBtn { position:absolute; border:none; background:transparent center/contain no-repeat; cursor:pointer; aspect-ratio:1/1; padding:0; transition:transform .08s ease, filter .08s ease; }
+
+  #recBtn:hover { transform:scale(1.04); filter:brightness(1.06); }
+
+  #inlineRec { position:absolute; border:none; background:transparent; }
+
+  #xlateBtn { position:absolute; border:none; background:transparent center/contain no-repeat; cursor:pointer; aspect-ratio:1/1; padding:0; transition:transform .08s ease, filter .08s ease; }
+
+  #xlateBtn:hover { transform:scale(1.05); filter:brightness(1.06); }
+
+  body.cal #xlateBtn { outline:2px dashed #fff; }
+
+  .cardnav { position:absolute; border:none; background:transparent center/contain no-repeat; cursor:pointer; aspect-ratio:1/1; padding:0; transition:transform .08s ease, filter .08s ease; }
+
+  .cardnav:hover { transform:scale(1.05); filter:brightness(1.06); }
+
+  #phoneMedia { background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#667; font-size:1vw; }
+
+  #phoneMedia video, #phoneMedia img { width:100%; height:100%; object-fit:contain; }
+
+  #playToggle { position:absolute; display:flex; align-items:center; justify-content:center; border:none; border-radius:50%; background:rgba(20,24,31,.72); color:#fff; cursor:pointer; padding:0; aspect-ratio:1/1; }
+
+  #playToggle svg { width:56%; height:56%; fill:#fff; }
+
+  #playToggle:hover { background:rgba(20,24,31,.9); }
+
+  body.cal .zone { background:rgba(47,111,237,.30)!important; outline:2px dashed #fff; }
+
+  body.cal .ovl { outline:2px dashed #e53935; }
+
+  body.cal #pointsBox { outline:2px dashed #e53935; background:rgba(229,57,53,.25); }
+
+  body.cal .zone::before { content:attr(data-n); position:absolute; top:2px; left:4px; color:#fff; font-size:12px; font-weight:800; text-shadow:0 1px 2px #000; }
+
+  body.cal #recBtn { outline:2px dashed #fff; }
+
+  body.cal .cardnav { outline:2px dashed #fff; }
+
+  #calBtn { position:fixed; top:10px; left:10px; z-index:40; font:inherit; font-size:13px; cursor:pointer; background:#14181f; color:#fff; border:none; border-radius:8px; padding:8px 12px; opacity:.85; }
+
+  #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#14181f; color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:40; }
+
+  #toast.show { opacity:1; }
+
+
+
+/* Integrated transparent player: one shared column aligns both play controls. */
+
+#slidesStage{container-type:inline-size}
+
+#practicePlayer{position:absolute;left:13.5%;top:54%;width:50%;height:27%;background:transparent;display:grid;grid-template-columns:14% 1fr 14%;grid-template-rows:35% 35% 30%;column-gap:2%;align-items:center}
+
+.lp-button{position:relative;justify-self:center;width:72%;aspect-ratio:1;border:0;border-radius:50%;padding:0;display:grid;place-items:center;background:#0c9d47;color:#fff;cursor:pointer;box-shadow:0 2px 3px #0002;touch-action:manipulation}
+
+.lp-button svg{position:absolute;left:24%;top:24%;width:52%;height:52%;fill:currentColor;overflow:visible}
+
+.lp-listen{grid-column:1;grid-row:1}.lp-record{grid-column:1;grid-row:2;background:#e72c3e}
+
+.lp-compare{grid-column:3;grid-row:1 / 3;background:linear-gradient(#0c9d47 50%,#e72c3e 50%);padding:0}
+
+.lp-wave{width:100%;height:75%;min-width:0;background:transparent;grid-column:2}.lp-model{grid-row:1}.lp-user{grid-row:2}
+
+.lp-status{grid-column:1 / 4;grid-row:3;text-align:center;line-height:1.35;font-size:1.2cqw;font-weight:650;align-self:start;padding-top:1%}
+
+.lp-count{grid-column:1;grid-row:2;z-index:2;pointer-events:none;justify-self:center;display:grid;place-items:center;width:72%;aspect-ratio:1;border-radius:50%;background:#fff;color:#bc1d30;font-weight:800;font-size:3cqw}.lp-count[hidden]{display:none}
+
+.lp-button:disabled{opacity:.35;cursor:default}.lp-button:focus-visible{outline:3px solid #172943;outline-offset:4px}
+
+.lp-button.pulse{animation:lpPulse 1.25s ease-in-out infinite}.lp-button.stop-face svg{visibility:hidden}.lp-button.stop-face::after{content:"";position:absolute;left:34%;top:34%;width:32%;height:32%;background:#fff;border-radius:6%}
+
+@keyframes lpPulse{50%{box-shadow:0 0 0 5px #ffd34b88;transform:scale(1.06)}}
+
+@media(prefers-reduced-motion:reduce){.lp-button.pulse{animation:none;outline:3px solid #e7b329;outline-offset:3px}}
+
+#phoneMedia{border-radius:7%}#transPanel{z-index:5}body.cal #practicePlayer{outline:2px dashed #e53935}
+
+.stage{max-width:100%;min-width:0;flex-shrink:1}
+
+#hubVideo{border-radius:9px}#hubVideo video{object-fit:contain}
+
+.hub-action{position:absolute;border:0;background:transparent;border-radius:12px;cursor:pointer}.hub-action:hover{outline:3px solid #57c8ff}.hub-action:focus-visible{outline:4px solid #ffce43}.hub-action:disabled{cursor:default;background:#0c1f332b}.hub-action:disabled:hover{outline:none}
+
+.hub-title{position:absolute;left:54%;top:7.2%;width:45%;height:25.1%;background:linear-gradient(125deg,#fff 68%,#e8f6ff 68%);border-radius:10px;border:3px solid #102b4b;display:flex;flex-direction:column;justify-content:center;align-items:center;overflow:hidden;padding:1%}.hub-title h1{margin:0;color:#006bf2;font-size:6vw;line-height:1.1;letter-spacing:-.045em;text-shadow:2px 2px #001c46;font-weight:950;font-style:italic}.hub-title p{margin:.4vw 0 0;color:#0b203a;font-size:2.6vw;line-height:1.15;font-weight:850;font-style:italic;text-align:center}
+
+.hub-back{position:absolute;left:22%;top:0;width:16%;height:6.4%;border:0;background:#06223e;color:white;font:700 1.7vw system-ui;cursor:pointer}
+
+.hub-progress{position:absolute;left:68%;top:.8%;width:31%;height:5.5%;background:#06223e;color:white;display:flex;align-items:center;justify-content:center;font-size:1.5vw;font-weight:650;border-radius:8px}
+
+.activity-badge{position:absolute;width:5.1%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;border:3px solid white;background:#102b4b;color:white;font-size:1.7vw;pointer-events:none}.activity-badge.ready,.activity-badge.done{background:#157f43}.activity-badge.coming{font-size:.95vw;background:#30455a}
+
+.hub-unlock-hint{position:absolute;left:69%;top:47.5%;width:25%;font-size:.9vw;color:#082340;background:#edf6e8;text-align:center;border-radius:6px;padding:.15vw}
+
+.hub-objectives{position:absolute;left:6.2%;top:71.3%;width:45%;height:23%;background:#fffdf9;border-radius:16px;padding:.3vw 1vw;overflow:auto;display:flex;flex-direction:column;justify-content:center}.hub-objectives p{margin:.4vw 0;font-size:1.25vw;line-height:1.4;color:#112638}.hub-objectives strong{font-weight:800}
+
+.hub-footer{position:absolute;left:54%;top:94.5%;width:45%;height:4%;background:#06223e;color:white;display:flex;justify-content:center;align-items:center;font-size:1vw}
+
+.hub-no-video{position:absolute;display:grid;place-items:center;background:#0a243ce8;color:white;border-radius:10px;font-size:2.3vw}
+
+.hub-preview{position:absolute;left:1.5%;top:97%;font-size:.8vw;color:#fff;background:#082340;padding:.1vw .3vw;border-radius:3px}
+
+
+
+</style>
+
+</head>
+
+<body>
+
+  <button id="calBtn" onclick="toggleCal()" hidden>Calibrate</button>
+
+  <div class="screen artfull" id="pickerScreen">
+
+    <div class="stage" id="pickerStage">
+
+      <div id="loginPanel" class="hidden">
+
+        <div id="loginForm">
+
+          <h3>Log in</h3><p class="hint">Try Ahmed / 1234</p>
+
+          <input id="nameInput" type="text" placeholder="Your name" />
+
+          <input id="pinInput" type="text" placeholder="PIN" />
+
+          <button class="go" onclick="doLogin()">Enter</button>
+
+          <div class="st" id="loginStatus"></div>
+
+        </div>
+
+        <div id="loginInfo" class="hidden">
+
+          <h3>Signed in</h3><p class="hint" id="whoName"></p>
+
+          <button class="link" onclick="logout()">Log out</button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="screen artfull hidden" id="unitScreen"><div class="stage" id="unitStage"></div></div>
+
+  <div class="screen artfull hidden" id="hubScreen"><div class="stage" id="hubStage"></div></div>
+
+  <div class="screen artfull hidden" id="slidesScreen"><div class="stage" id="slidesStage"></div></div>
+
+  <div id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="layout.js"></script>
+
+<script>
+
+function createPracticePlayer(root,options){
+
+
+
+'use strict';
+
+const $=id=>root.querySelector('[data-player="'+id+'"]'), buttons=['listen','record','compare'];
+
+let ctx,model,user,userBlob,stream,recorder,analyser,micSource,raf,timer,sources=[],phase='loading',heard=false,token=0,text='',modelPeaks=[],userPeaks=[],cancelTake=false,playbackKind=null;
+
+const say=s=>$('status').textContent=s;
+
+function audioContext(){return ctx||(ctx=new (window.AudioContext||window.webkitAudioContext)());}
+
+function ui(next,message){phase=next;if(message!==undefined)say(message);buttons.forEach(id=>{$(id).classList.remove('pulse','active');$(id).disabled=false;});$('listen').disabled=!model||['permission','countdown','recording','saving','loading','checking'].includes(phase);$('record').disabled=!model||['permission','saving','loading','checking'].includes(phase);$('compare').disabled=!user||!['ready','review','playing'].includes(phase);if(phase==='ready')$(heard?'record':'listen').classList.add('pulse');if(phase==='review'){ $('compare').classList.add('pulse');}if(phase==='recording')$('record').classList.add('active');$('record').setAttribute('aria-label',phase==='recording'?'Stop recording':phase==='countdown'?'Cancel countdown':'Record your voice');syncStopControls();}
+
+function syncStopControls(){
+
+  const ids=phase==='playing'?(playbackKind==='both'?['listen','record','compare']:playbackKind==='model'?['listen']:playbackKind==='user'?['record']:[]):phase==='recording'?['record']:[];
+
+  const labels={listen:'Listen to the model',compare:'Play both and check',record:phase==='countdown'?'Cancel countdown':'Record your voice'};
+
+  for(const id of buttons){const active=ids.includes(id),b=$(id);b.classList.toggle('stop-face',active);const label=active?(phase==='recording'?'Stop recording':playbackKind==='both'?'Stop both recordings':'Stop playback'):labels[id];b.setAttribute('aria-label',label);b.title=label;}
+
+}
+
+function togglePlayback(kind){
+
+  const id=kind==='model'?'listen':kind==='user'?'record':'compare';
+
+  if(phase==='playing'&&$(id).classList.contains('stop-face')){
+
+    ++token;stopPlayback();ui(user?'review':'ready','');return;
+
+  }
+
+  return play(kind);
+
+}
+
+function peaks(buffer,n=110){const d=buffer.getChannelData(0),p=[];for(let i=0;i<n;i++){let sum=0;const a=Math.floor(i*d.length/n),b=Math.floor((i+1)*d.length/n);for(let j=a;j<b;j++)sum+=d[j]*d[j];p.push(Math.sqrt(sum/Math.max(1,b-a)));}const max=Math.max(.001,...p);return p.map(v=>v/max);}
+
+function draw(id,p,color,progress=0){const c=$(id),r=c.getBoundingClientRect(),ratio=devicePixelRatio||1;c.width=Math.max(1,r.width*ratio);c.height=Math.max(1,r.height*ratio);const g=c.getContext('2d'),w=c.width,h=c.height;g.strokeStyle=color;g.lineWidth=ratio;g.globalAlpha=.45;g.beginPath();g.moveTo(0,h/2);g.lineTo(w,h/2);g.stroke();g.globalAlpha=1;const step=w/Math.max(1,p.length);p.forEach((v,i)=>{g.fillStyle=color;g.globalAlpha=progress&&i/p.length<progress?1:.65;const bh=Math.max(2*ratio,v*h*.88);g.fillRect(i*step,h/2-bh/2,Math.max(ratio,step*.55),bh);});if(progress){g.globalAlpha=1;g.fillStyle='#263b54';g.fillRect(w*progress,0,2*ratio,h);}}
+
+function redraw(){draw('modelWave',modelPeaks,'#168d55');draw('userWave',userPeaks,'#dd3444');}
+
+const observer=new ResizeObserver(redraw);observer.observe(root);
+
+function stopPlayback(){playbackKind=null;syncStopControls();sources.forEach(s=>{s.onended=null;try{s.stop();}catch{}});sources=[];cancelAnimationFrame(raf);redraw();}
+
+function trim(buffer){const d=buffer.getChannelData(0),block=256;let peak=0;for(let i=0;i<d.length;i++)peak=Math.max(peak,Math.abs(d[i]));const threshold=Math.max(.006,peak*.07);let first=0,last=d.length;for(let i=0;i<d.length;i+=block){let sum=0;for(let j=i;j<Math.min(d.length,i+block);j++)sum+=d[j]*d[j];if(Math.sqrt(sum/block)>threshold){first=Math.max(0,i-Math.floor(buffer.sampleRate*.07));break;}}for(let i=d.length-block;i>first;i-=block){let sum=0;for(let j=i;j<i+block;j++)sum+=d[j]*d[j];if(Math.sqrt(sum/block)>threshold){last=Math.min(d.length,i+block+Math.floor(buffer.sampleRate*.15));break;}}const out=audioContext().createBuffer(buffer.numberOfChannels,Math.max(1,last-first),buffer.sampleRate);for(let ch=0;ch<buffer.numberOfChannels;ch++)out.copyToChannel(buffer.getChannelData(ch).subarray(first,last),ch);return out;}
+
+async function play(kind){options.onAction?.();const mine=++token;stopPlayback();try{await audioContext().resume();if(mine!==token)return;const list=kind==='model'?[model]:kind==='user'?[user]:[model,user];if(list.some(x=>!x))return;playbackKind=kind;ui('playing',kind==='model'?'Listen to the model…':kind==='user'?'Listen to your voice…':'Listen to both voices…');const start=ctx.currentTime+.06,duration=Math.max(...list.map(b=>b.duration));let pending=list.length;for(const b of list){const s=ctx.createBufferSource(),gain=ctx.createGain();s.buffer=b;gain.gain.value=list.length===2?.5:1;s.connect(gain).connect(ctx.destination);s.onended=()=>{gain.disconnect();if(--pending===0&&mine===token){sources=[];cancelAnimationFrame(raf);redraw();if(kind==='model'){heard=true;ui('ready','Your turn! Press the microphone.');}else if(kind==='both')check(mine);else ui('review','Press the green/red button to compare.');}};sources.push(s);s.start(start);}function tick(){const t=Math.max(0,ctx.currentTime-start);draw('modelWave',modelPeaks,'#168d55',kind==='user'?0:Math.min(1,t/model.duration));draw('userWave',userPeaks,'#dd3444',kind==='model'?0:Math.min(1,t/user.duration));if(t<duration)raf=requestAnimationFrame(tick);}tick();}catch(e){if(mine===token)ui(user?'review':'ready','Playback unavailable. Please try again.');}}
+
+function closeMic(){clearInterval(timer);cancelAnimationFrame(raf);if(micSource)micSource.disconnect();micSource=null;analyser=null;if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('count').hidden=true;}
+
+async function record(){if(phase==='playing'&&$('record').classList.contains('stop-face')){++token;stopPlayback();ui('review','Press the green/red button to compare.');return;}if(phase==='countdown'){token++;closeMic();ui('ready','Press the microphone when you are ready.');return;}if(phase==='recording'){finish();return;}options.onAction?.();const mine=++token;stopPlayback();ui('permission','Allow microphone access to begin.');try{await audioContext().resume();if(mine!==token)return;if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)throw Error('unsupported');const incoming=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});if(mine!==token){incoming.getTracks().forEach(t=>t.stop());return;}stream=incoming;ui('countdown','Get ready…');let n=3;$('count').hidden=false;$('count').textContent=n;timer=setInterval(()=>{n--;if(n){$('count').textContent=n;}else{clearInterval(timer);$('count').hidden=true;capture(mine);}},500);}catch(e){if(mine!==token)return;closeMic();ui('ready',e.name==='NotAllowedError'?'Please allow microphone access, then try again.':e.name==='NotFoundError'?'No microphone found. Connect one and try again.':'Microphone unavailable. Open this in Chrome or Edge, or on an HTTPS page.');}}
+
+function capture(mine){try{const supported=['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(t=>MediaRecorder.isTypeSupported(t));recorder=new MediaRecorder(stream,supported?{mimeType:supported}:{});const takeRecorder=recorder;const chunks=[];cancelTake=false;user=null;userBlob=null;userPeaks=[];let spoke=false,voiceFrames=0,lastVoice=0,noise=.003;const start=performance.now();recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};recorder.onerror=()=>{cancelTake=true;finish();};recorder.onstop=async()=>{if(mine!==token)return;closeMic();if(cancelTake||!spoke){ui('ready',cancelTake?'Recording interrupted. Please try again.':'I didn’t hear your voice. Try again.');return;}ui('saving','Getting your recording ready…');try{const blob=new Blob(chunks,{type:takeRecorder.mimeType});const decoded=await audioContext().decodeAudioData(await blob.arrayBuffer());if(mine!==token)return;user=trim(decoded);userBlob=blob;userPeaks=peaks(user);redraw();await play('user');}catch{if(mine===token)ui('ready','Could not read the recording. Please try again.');}};micSource=ctx.createMediaStreamSource(stream);analyser=ctx.createAnalyser();analyser.fftSize=2048;micSource.connect(analyser);const data=new Float32Array(analyser.fftSize);ui('recording','Speak now… Press the square to stop.');recorder.start(100);function tick(){if(phase!=='recording'||mine!==token)return;analyser.getFloatTimeDomainData(data);let sum=0;for(const v of data)sum+=v*v;const rms=Math.sqrt(sum/data.length),now=performance.now();if(now-start<220)noise=Math.min(.018,Math.max(.002,rms));const threshold=Math.max(.012,noise*2.8);if(rms>threshold){voiceFrames++;if(voiceFrames>=3)spoke=true;lastVoice=now;}else voiceFrames=0;userPeaks.push(Math.min(1,rms*9));if(userPeaks.length>110)userPeaks.shift();draw('userWave',userPeaks,'#dd3444');if((spoke&&now-lastVoice>1500)||(!spoke&&now-start>7000)||now-start>15000){finish();return;}raf=requestAnimationFrame(tick);}tick();}catch{closeMic();ui('ready','Could not start recording. Please try again.');}}
+
+function finish(){if(recorder?.state==='recording'){ui('saving','Finishing your recording…');recorder.stop();closeMic();}}
+
+// Local practice score: broad amplitude pattern, duration and average energy.
+
+// This is NOT phoneme, word, pitch or pronunciation recognition.
+
+function audioEnvelope(buffer,n=20){
+
+  if(!buffer||!Number.isFinite(buffer.duration)||buffer.duration<=0)throw Error('Missing audio');
+
+  const d=buffer.getChannelData(0),values=[];
+
+  if(d.length<n)throw Error('Audio too short');
+
+  for(let i=0;i<n;i++){
+
+    const a=Math.floor(i*d.length/n),b=Math.floor((i+1)*d.length/n);let sum=0;
+
+    for(let j=a;j<b;j++)sum+=d[j]*d[j];
+
+    values.push(Math.sqrt(sum/Math.max(1,b-a)));
+
+  }
+
+  return values;
+
+}
+
+function localSimilarity(reference,recording){
+
+  const a=audioEnvelope(reference),b=audioEnvelope(recording);
+
+  const mean=v=>v.reduce((sum,x)=>sum+x,0)/v.length;
+
+  const ea=mean(a),eb=mean(b);
+
+  if(ea<0.001||eb<0.001)throw Error('No usable sound');
+
+  let dot=0,aa=0,bb=0;
+
+  for(let i=0;i<a.length;i++){dot+=a[i]*b[i];aa+=a[i]*a[i];bb+=b[i]*b[i];}
+
+  const rhythmRaw=100*dot/Math.sqrt(aa*bb);
+
+  const timingRaw=100*(1-Math.abs(1-recording.duration/reference.duration));
+
+  const energyRaw=100*Math.min(ea,eb)/Math.max(ea,eb);
+
+  // Preserve the original forgiving curve and weights, using REAL reference audio.
+
+  const lift=v=>Math.round(45+55*Math.pow(Math.max(0,Math.min(100,v))/100,0.6));
+
+  const rhythm=lift(rhythmRaw),timing=lift(timingRaw),energy=lift(energyRaw);
+
+  return {score:Math.round(rhythm*.25+timing*.40+energy*.35),rhythm,timing,energy};
+
+}
+
+async function check(mine){
+
+  const external=typeof api.assess==='function';
+
+  ui('checking',external?'Checking your pronunciation…':'Comparing the recordings…');
+
+  try{
+
+    const result=external?await api.assess({blob:userBlob,referenceText:text}):localSimilarity(model,user);
+
+    if(mine!==token)return;
+
+    const score=result?.score;
+
+    if(typeof score!=='number'||!Number.isFinite(score)||score<0||score>100)throw Error('Invalid score');
+
+    const value=Math.round(score);
+
+    if(value>=80){ui('review',`👍 👍  Sound similarity: ${value}%`);celebrate();}
+
+    else if(value>=60)ui('review',`👍  Sound similarity: ${value}%`);
+
+    else ui('ready',`Sound similarity: ${value}% — Try again`);
+
+  }catch{
+
+    if(mine===token){
+
+      if(external)ui('review','Could not check that recording. Please try again.');
+
+      else ui('ready','Not enough clear sound to compare. Please record again.');
+
+    }
+
+  }
+
+}
+
+function celebrate(){[523.25,659.25,783.99,1046.5].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*.11;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.07,t+.015);g.gain.exponentialRampToValueAtTime(.001,t+.25);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.26);o.onended=()=>g.disconnect();});}
+
+function reset(){token++;cancelTake=true;if(recorder?.state==='recording')recorder.stop();stopPlayback();closeMic();user=null;userBlob=null;userPeaks=[];heard=false;ui('ready','');redraw();}
+
+let loadAbort=null;
+
+async function setLesson(lesson){
+
+  loadAbort?.abort();reset();const mine=token;
+
+  model=null;modelPeaks=[];text=String(lesson.text||'');ui('loading','Loading audio…');redraw();
+
+  loadAbort=new AbortController();const signal=loadAbort.signal;
+
+  try{
+
+    let url=lesson.audioUrl;
+
+    if(!url){
+
+      if(!text)throw Error('Missing phrase');
+
+      url=await options.makeVoice(text,signal);
+
+    }
+
+    if(mine!==token)return;
+
+    const response=await fetch(url,{signal});if(!response.ok)throw Error('Audio unavailable');
+
+    const b=await audioContext().decodeAudioData(await response.arrayBuffer());if(mine!==token)return;
+
+    model=trim(b);modelPeaks=peaks(model);ui('ready','');redraw();
+
+  }catch(e){if(mine===token&&e.name!=='AbortError')ui('loading','Audio unavailable. Try reopening this slide.');}
+
+}
+
+function pause(){
+
+  if(phase==='loading')return;
+
+  if(['recording','countdown','permission','saving'].includes(phase)){reset();return;}
+
+  ++token;stopPlayback();ui(user?'review':'ready','');
+
+}
+
+const api={setLesson,reset,pause,record,assess:null,destroy(){loadAbort?.abort();reset();observer.disconnect();ctx?.close();}};
+
+$('listen').onclick=()=>togglePlayback('model');$('compare').onclick=()=>togglePlayback('both');$('record').onclick=record;
+
+ui('loading','');return api;
+
+
+
+}
+
+
+
+    const LMN_PREVIEW = new URLSearchParams(location.search).get("preview")==="1";
+
+    let previewCards=[];
+
+    const SUPABASE_URL = "https://quymqrdoxmplpiwrptbb.supabase.co";
+
+    const SUPABASE_KEY = "sb_publishable_mGAO-9c1PXZT9ltrVtHVLg_g4d_WgN4";
+
+
+
+    const WHEEL_IMG   = "https://res.cloudinary.com/dvokel99y/image/upload/v1786859227/YAAAAAAAAAAAYYYYYYYYYYYYYYYYYY_bskthl.png";
+
+    const CUE_CARD_BG = "study-card.png";
+
+    const FUNCTION_URL = "https://us-central1-eco-groove-475802-i4.cloudfunctions.net/lmn-translate";
+
+    const MAIN_BTN = "https://res.cloudinary.com/dvokel99y/image/upload/v1788534939/70b7e6c4-acf0-4b45-9e58-ca2810d7beb9_nhplc4.png";
+
+    const UNIT_BTN = "https://res.cloudinary.com/dvokel99y/image/upload/v1788534940/unit_1_button_xvwke3.png";
+
+    const L1_BTN   = "https://res.cloudinary.com/dvokel99y/image/upload/v1788534940/l1_button_d0meju.png";
+
+
+
+    let practicePlayer=null, mediaRequest=0, slideRevision=0;
+
+    const voiceCache=new Map();
+
+    let db=null;
+
+    try { const { createClient } = supabase; db = createClient(SUPABASE_URL, SUPABASE_KEY); }
+
+    catch(e){ console.error("Supabase init:", e); }
+
+
+
+    function showCard(id){ if(id!=="slidesScreen"){stopOtherAudio();practicePlayer?.reset();} document.querySelectorAll(".screen").forEach(s=>s.classList.add("hidden")); document.getElementById(id).classList.remove("hidden"); }
+
+    function pxs(o){ return 'left:'+o.left+'%; top:'+o.top+'%; width:'+o.width+'%; height:'+o.height+'%;'; }
+
+
+
+    /* session / live data */
+
+    let currentStudent=null, doneLessons=[];
+
+    let currentUnit=null, lessonsByNumber={}, currentLesson=null, currentCards=[];
+
+    let currentLang=""; try{ currentLang=localStorage.getItem("lmnLang")||""; }catch(e){ currentLang=""; }
+
+    document.getElementById("pickerStage").style.backgroundImage='url("'+WHEEL_IMG+'")';
+
+    document.getElementById("slidesStage").style.backgroundImage='url("'+CUE_CARD_BG+'")';
+
+
+
+    /* ===== WHEEL PICKER (calibrated) ===== */
+
+    const PW=1672, PH=941;
+
+    const PICKER = { cxf:0.514, cyf:0.676, rpx:151, zsz:89, rotDeg:0 };
+
+    const PICKER_CTRL = { loginBtn:{left:78.0,top:4.5,width:19.0,height:9.0}, pickunit:{left:41.0,top:90.0,width:24.0,height:8.0} };
+
+    function renderPicker(){
+
+      let html="";
+
+      for(let k=1;k<=10;k++){
+
+        const th=(PICKER.rotDeg+(k-0.5)*36)*Math.PI/180;
+
+        const px=PICKER.cxf*PW+PICKER.rpx*Math.sin(th), py=PICKER.cyf*PH-PICKER.rpx*Math.cos(th);
+
+        const l=(px-PICKER.zsz/2)/PW*100, t=(py-PICKER.zsz/2)/PH*100, w=PICKER.zsz/PW*100, h=PICKER.zsz/PH*100;
+
+        html+='<button class="zone circle" data-n="'+k+'" style="left:'+l+'%; top:'+t+'%; width:'+w+'%; height:'+h+'%;" onclick="pickUnit('+k+')"></button>';
+
+      }
+
+      html+=ctrl(PICKER_CTRL.loginBtn,"LOGIN","toggleLoginPanel()");
+
+      html+=ctrl(PICKER_CTRL.pickunit,"PICK","pickHint()");
+
+      const st=document.getElementById("pickerStage"), panel=document.getElementById("loginPanel");
+
+      st.innerHTML=html; st.appendChild(panel);
+
+    }
+
+    function ctrl(c,label,handler){ return '<button class="zone" data-n="'+label+'" style="'+pxs(c)+'" onclick="'+handler+'"></button>'; }
+
+
+
+    async function pickUnit(k){
+
+      if(!currentStudent){ toast("Please log in first"); openLoginPanel(); return; }
+
+      const { data, error } = await db.from("units").select("*").eq("unit_number",k).limit(1);
+
+      if(error){ console.error("units load:",error); toast("Couldn't load unit (see console)"); return; }
+
+      if(!data || !data.length){ toast("Unit "+k+" \u2014 coming soon"); return; }
+
+      currentUnit=data[0];
+
+      if(currentUnit.art_url) document.getElementById("unitStage").style.backgroundImage='url("'+currentUnit.art_url+'")';
+
+      await loadLessons(currentUnit.id);
+
+      renderUnit();
+
+      showCard("unitScreen");
+
+    }
+
+    function pickHint(){ if(!currentStudent){ toast("Log in, then tap a number"); openLoginPanel(); } else toast("Tap a number to choose a unit"); }
+
+    function toggleLoginPanel(){ const p=document.getElementById("loginPanel"); if(p.classList.contains("hidden")) openLoginPanel(); else p.classList.add("hidden"); }
+
+    function openLoginPanel(){ const p=document.getElementById("loginPanel"); document.getElementById("loginForm").classList.toggle("hidden",!!currentStudent); document.getElementById("loginInfo").classList.toggle("hidden",!currentStudent); if(currentStudent) document.getElementById("whoName").textContent=currentStudent.display_name; p.classList.remove("hidden"); }
+
+
+
+    async function loadLessons(unitId){
+
+      lessonsByNumber={};
+
+      const { data, error } = await db.from("lessons").select("*").eq("unit_id",unitId).order("lesson_number");
+
+      if(error){ console.error("lessons load:",error); return; }
+
+      (data||[]).forEach(function(l){ lessonsByNumber[l.lesson_number]=l; });
+
+    }
+
+
+
+    /* ===== UNIT TILES (calibrated) ===== */
+
+    const GRID={cols:5,rows:3,startX:16.9,startY:21.6,tileW:13.9,tileH:18.1,gapX:1.0,gapY:3.4};
+
+    const UCTRL={home:{left:5.5,top:84.5,width:10.0,height:13.5},points:{left:30.0,top:85.0,width:40.0,height:12.5},store:{left:84.0,top:84.0,width:8.0,height:14.5}};
+
+    const DEMO_POINTS=0;
+
+    function stateFor(i){
+
+      const num=i+1, lesson=lessonsByNumber[num];
+
+      if(!lesson) return "locked";
+
+      const id=String(lesson.id);
+
+      if(doneLessons.includes(id)) return "done";
+
+      if(num===1) return "available";
+
+      const prev=lessonsByNumber[num-1];
+
+      if(prev && doneLessons.includes(String(prev.id))) return "available";
+
+      return "locked";
+
+    }
+
+    function renderUnit(){
+
+      let html="";
+
+      for(let i=0;i<15;i++){
+
+        const st=stateFor(i),col=i%GRID.cols,row=Math.floor(i/GRID.cols);
+
+        const l=GRID.startX+col*(GRID.tileW+GRID.gapX), t=GRID.startY+row*(GRID.tileH+GRID.gapY);
+
+        html+='<button class="zone '+st+'" data-n="'+(i+1)+'" style="left:'+l+'%; top:'+t+'%; width:'+GRID.tileW+'%; height:'+GRID.tileH+'%;" onclick="openLesson('+i+')"></button>';
+
+      }
+
+      html+=ctrl(UCTRL.home,"HOME","showCard('pickerScreen')");
+
+      html+=ctrl(UCTRL.store,"STORE","toast('LMN Tree Knowledge Store \u2014 coming later')");
+
+      const p=UCTRL.points;
+
+      html+='<div id="pointsBox" data-n="POINTS" style="'+pxs(p)+'">\u2B50 '+DEMO_POINTS+'</div>';
+
+      document.getElementById("unitStage").innerHTML=html;
+
+    }
+
+    function openLesson(i){
+
+      const num=i+1, lesson=lessonsByNumber[num];
+
+      if(!lesson){ toast("Lesson "+num+" \u2014 coming soon"); return; }
+
+      if(stateFor(i)==="locked"){ return; }
+
+      currentLesson=lesson;
+
+      document.getElementById("hubStage").style.backgroundImage='url("lesson-menu.png")';
+
+      buildHub();
+
+      showCard("hubScreen");
+
+    }
+
+
+
+    /* Lesson menu: live content and two currently available activities. */
+
+    const HUB={video:{left:1.1,top:7.3,width:51.7,height:52.4,n:'VIDEO'},listen:{left:53.8,top:33.7,width:45.3,height:18.2,n:'LISTEN & SPEAK'},read:{left:53.8,top:53.5,width:45.3,height:18.6,n:'READ & WRITE'},games:{left:53.8,top:74,width:45.3,height:18,n:'PRACTICE GAMES'}};
+
+    let savingCompletion=false;
+
+    function activityKey(){return 'lmn.activities.v1.'+(LMN_PREVIEW?'preview':currentStudent?.id||'guest')+'.'+currentLesson.id;}
+
+    function activities(){
+
+      if(!LMN_PREVIEW&&doneLessons.includes(String(currentLesson.id)))return {video:true,speak:true};
+
+      try{return JSON.parse(localStorage.getItem(activityKey())||'{}');}catch{return {};}
+
+    }
+
+    function setActivity(name){const value=activities();value[name]=true;try{localStorage.setItem(activityKey(),JSON.stringify(value));}catch{}}
+
+    async function saveLessonCompletion(){
+
+      const status=activities(),lid=String(currentLesson.id);
+
+      if((currentLesson.video_url&&!status.video)||!status.speak||LMN_PREVIEW||!currentStudent||!db||savingCompletion||doneLessons.includes(lid))return;
+
+      savingCompletion=true;
+
+      try{
+
+        const {error}=await db.from('progress').insert({student_id:currentStudent.id,lesson_id:currentLesson.id,status:'completed'});
+
+        if(error)throw error;doneLessons.push(lid);renderUnit();toast('Lesson complete! ✓');
+
+      }catch{toast('Could not save lesson progress. Reopen the lesson and try again.');}
+
+      finally{savingCompletion=false;}
+
+    }
+
+    function videoPoster(url){return url?.includes('/video/upload/')?url.replace('/video/upload/','/video/upload/so_0/').replace(/\.(mp4|mov|webm|m4v|ogv)(\?|#|$)/i,'.jpg'):'';}
+
+    function hubButton(parent,name,position,label,handler,disabled=false){
+
+      const button=document.createElement('button');button.className='hub-action';button.style.cssText=pxs(position);button.setAttribute('aria-label',label);button.disabled=disabled;button.onclick=handler;parent.append(button);return button;
+
+    }
+
+    function statusBadge(parent,name,position,label){const badge=document.createElement('span');badge.className='activity-badge '+name;badge.style.cssText='left:93%;top:'+(position.top+3.6)+'%;';badge.textContent=label;parent.append(badge);}
+
+    function buildHub(){
+
+      const stage=document.getElementById('hubStage');stage.replaceChildren();stage.style.backgroundImage='url("lesson-menu.png")';
+
+      const status=activities(),hasVideo=!!currentLesson.video_url,unlocked=!hasVideo||!!status.video;
+
+      const title=document.createElement('section');title.className='hub-title';const number=document.createElement('h1');number.textContent='Lesson '+currentLesson.lesson_number;const phrase=document.createElement('p');phrase.textContent=currentLesson.title?.trim()||'Your lesson';title.append(number,phrase);stage.append(title);
+
+      const back=document.createElement('button');back.className='hub-back';back.textContent='← Lessons';back.onclick=()=>{stopOtherAudio();if(LMN_PREVIEW)toast('This preview shows Unit 2, Lesson 1.');else showCard('unitScreen');};stage.append(back);
+
+      const available=hasVideo?2:1,completed=(hasVideo&&status.video?1:0)+(status.speak?1:0);const progress=document.createElement('div');progress.className='hub-progress';progress.textContent=completed+' / '+available+' completed';stage.append(progress);
+
+      if(hasVideo){
+
+        const box=document.createElement('div');box.id='hubVideo';box.style.cssText=pxs(HUB.video);const video=document.createElement('video');video.src=currentLesson.video_url;video.poster=videoPoster(video.src);video.controls=true;video.playsInline=true;video.preload='metadata';video.setAttribute('aria-label','Main lesson video');
+
+        video.onplay=()=>stopOtherAudio(video);video.onended=async()=>{setActivity('video');await saveLessonCompletion();buildHub();};box.append(video);stage.append(box);
+
+      }else{const missing=document.createElement('div');missing.className='hub-no-video';missing.style.cssText=pxs(HUB.video);missing.textContent='Start with Listen & Speak';stage.append(missing);}
+
+      hubButton(stage,'speak',HUB.listen,unlocked?'Listen & Speak':'Listen & Speak — finish the video first',()=>openSlides(),!unlocked);
+
+      statusBadge(stage,status.speak?'done':unlocked?'ready':'locked',HUB.listen,status.speak?'✓':unlocked?'▶':'🔒');
+
+      if(!unlocked){const hint=document.createElement('span');hint.className='hub-unlock-hint';hint.textContent='Watch the video to unlock';stage.append(hint);}
+
+      for(const [name,position,label] of [['read',HUB.read,'Read & Write'],['games',HUB.games,'Practice Games']]){hubButton(stage,name,position,label+' — coming soon',()=>{},true);statusBadge(stage,'coming',position,'Soon');}
+
+      const footer=document.createElement('div');footer.className='hub-footer';footer.textContent='Read & Write and Practice Games are coming soon.';stage.append(footer);
+
+      const objectives=document.createElement('section');objectives.className='hub-objectives';let items=currentLesson.in_this_lesson;
+
+      if(typeof items==='string'){try{items=JSON.parse(items);}catch{items=[];}}
+
+      if(Array.isArray(items)&&items.length){for(const item of items.slice(0,4)){const line=document.createElement('p'),label=document.createElement('strong');label.textContent=(item.cat||'')+' ';line.append(label,document.createTextNode(item.text||''));objectives.append(line);}}
+
+      else{const line=document.createElement('p');line.textContent='Listen to the lesson. Practise the words and phrases.';objectives.append(line);}stage.append(objectives);
+
+      if(LMN_PREVIEW){const preview=document.createElement('span');preview.className='hub-preview';preview.textContent='Preview · progress is not saved to Supabase';stage.append(preview);}
+
+    }
+
+
+
+    /* ===== CUE CARDS (calibrated positions) ===== */
+
+    const CARD={ phrase:{left:13.12799043,top:22.56004251,width:52,height:15}, trans:{left:33.81666667,top:39,width:17.2,height:11}, phone:{left:70.7,top:19,width:19,height:68}, recregion:{left:12,top:47,width:52,height:32}, xlate:{left:25.98333333,top:38.281084,width:7,n:"TRANSLATE"}, prev:{left:1,top:43,width:8,height:14,n:"PREV"}, next:{left:91,top:43,width:8,height:14,n:"NEXT"}, sayit:{left:22,top:55.5,width:7,height:9,n:"RECORD"}, rec:{left:-20,top:70,width:8,n:"RECORD"},  back:{left:0.5,top:0.5,width:12,height:8,n:"BACK"}, playbtn:{left:75.75,top:79,width:9,height:9,n:"PLAY"} };
+
+    const CARDNAV = {
+
+      main:  {left:71.0, top:3.0, width:5.5, img:MAIN_BTN, go:"showCard('pickerScreen')", n:"MAIN"},
+
+      unit:  {left:77.5, top:3.0, width:5.5, img:UNIT_BTN, go:"showCard('unitScreen')", n:"UNIT"},
+
+      lesson:{left:84.0, top:3.0, width:5.5, img:L1_BTN,   go:"showCard('hubScreen')", n:"LESSON"}
+
+    };
+
+    const LANGS='<option value="" selected>\uD83C\uDF10 Translate\u2026</option><optgroup label="Priority"><option value="am">Amharic</option><option value="ti">Tigrinya</option><option value="so">Somali</option><option value="ar">Arabic</option><option value="bn">Bengali</option><option value="ms">Malay</option><option value="th">Thai</option></optgroup><optgroup label="All languages"><option value="ab">Abkhaz</option><option value="ace">Acehnese</option><option value="ach">Acholi</option><option value="af">Afrikaans</option><option value="sq">Albanian</option><option value="alz">Alur</option><option value="am">Amharic</option><option value="ar">Arabic</option><option value="hy">Armenian</option><option value="as">Assamese</option><option value="awa">Awadhi</option><option value="ay">Aymara</option><option value="az">Azerbaijani</option><option value="ban">Balinese</option><option value="bm">Bambara</option><option value="ba">Bashkir</option><option value="eu">Basque</option><option value="btx">Batak Karo</option><option value="bts">Batak Simalungun</option><option value="bbc">Batak Toba</option><option value="be">Belarusian</option><option value="bem">Bemba</option><option value="bn">Bengali</option><option value="bew">Betawi</option><option value="bho">Bhojpuri</option><option value="bik">Bikol</option><option value="bs">Bosnian</option><option value="br">Breton</option><option value="bg">Bulgarian</option><option value="bua">Buryat</option><option value="yue">Cantonese</option><option value="ca">Catalan</option><option value="ceb">Cebuano</option><option value="ny">Chichewa (Nyanja)</option><option value="zh-CN">Chinese (Simplified)</option><option value="zh-TW">Chinese (Traditional)</option><option value="cv">Chuvash</option><option value="co">Corsican</option><option value="crh">Crimean Tatar</option><option value="hr">Croatian</option><option value="cs">Czech</option><option value="da">Danish</option><option value="din">Dinka</option><option value="dv">Divehi</option><option value="doi">Dogri</option><option value="dov">Dombe</option><option value="nl">Dutch</option><option value="dz">Dzongkha</option><option value="en">English</option><option value="eo">Esperanto</option><option value="et">Estonian</option><option value="ee">Ewe</option><option value="fj">Fijian</option><option value="tl">Filipino (Tagalog)</option><option value="fi">Finnish</option><option value="fr">French</option><option value="fy">Frisian</option><option value="ff">Fulfulde</option><option value="gaa">Ga</option><option value="gl">Galician</option><option value="lg">Ganda (Luganda)</option><option value="ka">Georgian</option><option value="de">German</option><option value="el">Greek</option><option value="gn">Guarani</option><option value="gu">Gujarati</option><option value="ht">Haitian Creole</option><option value="cnh">Hakha Chin</option><option value="ha">Hausa</option><option value="haw">Hawaiian</option><option value="he">Hebrew</option><option value="hil">Hiligaynon</option><option value="hi">Hindi</option><option value="hmn">Hmong</option><option value="hu">Hungarian</option><option value="hrx">Hunsrik</option><option value="is">Icelandic</option><option value="ig">Igbo</option><option value="ilo">Iloko</option><option value="id">Indonesian</option><option value="ga">Irish</option><option value="it">Italian</option><option value="ja">Japanese</option><option value="jv">Javanese</option><option value="kn">Kannada</option><option value="pam">Kapampangan</option><option value="kk">Kazakh</option><option value="km">Khmer</option><option value="cgg">Kiga</option><option value="rw">Kinyarwanda</option><option value="ktu">Kituba</option><option value="gom">Konkani</option><option value="ko">Korean</option><option value="kri">Krio</option><option value="ku">Kurdish (Kurmanji)</option><option value="ckb">Kurdish (Sorani)</option><option value="ky">Kyrgyz</option><option value="lo">Lao</option><option value="ltg">Latgalian</option><option value="la">Latin</option><option value="lv">Latvian</option><option value="lij">Ligurian</option><option value="li">Limburgan</option><option value="ln">Lingala</option><option value="lt">Lithuanian</option><option value="lmo">Lombard</option><option value="luo">Luo</option><option value="lb">Luxembourgish</option><option value="mk">Macedonian</option><option value="mai">Maithili</option><option value="mak">Makassar</option><option value="mg">Malagasy</option><option value="ms">Malay</option><option value="ms-Arab">Malay (Jawi)</option><option value="ml">Malayalam</option><option value="mt">Maltese</option><option value="mi">Maori</option><option value="mr">Marathi</option><option value="chm">Meadow Mari</option><option value="mni-Mtei">Meiteilon (Manipuri)</option><option value="min">Minang</option><option value="lus">Mizo</option><option value="mn">Mongolian</option><option value="my">Myanmar (Burmese)</option><option value="nr">Ndebele (South)</option><option value="new">Nepalbhasa (Newari)</option><option value="ne">Nepali</option><option value="nso">Northern Sotho (Sepedi)</option><option value="no">Norwegian</option><option value="nus">Nuer</option><option value="oc">Occitan</option><option value="or">Odia (Oriya)</option><option value="om">Oromo</option><option value="pag">Pangasinan</option><option value="pap">Papiamento</option><option value="ps">Pashto</option><option value="fa">Persian</option><option value="pl">Polish</option><option value="pt">Portuguese</option><option value="pt-BR">Portuguese (Brazil)</option><option value="pt-PT">Portuguese (Portugal)</option><option value="pa">Punjabi</option><option value="pa-Arab">Punjabi (Shahmukhi)</option><option value="qu">Quechua</option><option value="rom">Romani</option><option value="ro">Romanian</option><option value="rn">Rundi</option><option value="ru">Russian</option><option value="sm">Samoan</option><option value="sg">Sango</option><option value="sa">Sanskrit</option><option value="gd">Scots Gaelic</option><option value="sr">Serbian</option><option value="st">Sesotho</option><option value="crs">Seychellois Creole</option><option value="shn">Shan</option><option value="sn">Shona</option><option value="scn">Sicilian</option><option value="szl">Silesian</option><option value="sd">Sindhi</option><option value="si">Sinhala (Sinhalese)</option><option value="sk">Slovak</option><option value="sl">Slovenian</option><option value="so">Somali</option><option value="es">Spanish</option><option value="su">Sundanese</option><option value="sw">Swahili</option><option value="ss">Swati</option><option value="sv">Swedish</option><option value="tg">Tajik</option><option value="ta">Tamil</option><option value="tt">Tatar</option><option value="te">Telugu</option><option value="tet">Tetum</option><option value="th">Thai</option><option value="ti">Tigrinya</option><option value="ts">Tsonga</option><option value="tn">Tswana</option><option value="tr">Turkish</option><option value="tk">Turkmen</option><option value="ak">Twi (Akan)</option><option value="uk">Ukrainian</option><option value="ur">Urdu</option><option value="ug">Uyghur</option><option value="uz">Uzbek</option><option value="vi">Vietnamese</option><option value="cy">Welsh</option><option value="xh">Xhosa</option><option value="yi">Yiddish</option><option value="yo">Yoruba</option><option value="yua">Yucatec Maya</option><option value="zu">Zulu</option></optgroup>';
+
+    let sIdx=0, curAudio=null, xlateShown=false, translationRequest=0;
+
+    async function openSlides(){
+
+      const { data, error } = LMN_PREVIEW ? {data:previewCards,error:null} : await db.from("cards").select("*").eq("lesson_id",currentLesson.id).order("card_order");
+
+      if(error){ console.error("cards load:",error); toast("Couldn't load cards (see console)"); return; }
+
+      if(!data || !data.length){ toast("No cards yet for this lesson"); return; }
+
+      currentCards=data; sIdx=0; buildSlides(); showCard("slidesScreen");
+
+    }
+
+    function curS(){ return currentCards[sIdx]; }
+
+    function buildSlides(){
+
+      practicePlayer?.destroy();practicePlayer=null;
+
+      let h="";
+
+      h+='<div id="phraseBand" aria-hidden="true"></div>';
+
+      h+='<div class="ovl" id="phraseBox" style="'+pxs(CARD.phrase)+'"></div>';
+
+      h+='<div class="ovl" id="transPanel" style="'+pxs(CARD.trans)+'"><div class="en" id="enPhrase"></div><select id="langSel" aria-label="Translation language" onchange="doTranslate()">'+LANGS+'</select><div class="trow"><div class="out" id="transOut"></div><button class="listen" id="listenBtn" style="display:none" onclick="doListen()">\uD83D\uDD0A Listen</button></div></div>';
+
+      h+='<button id="xlateBtn" data-n="'+CARD.xlate.n+'" style="left:'+CARD.xlate.left+'%; top:'+CARD.xlate.top+'%; width:'+CARD.xlate.width+'%;" aria-label="Translate" title="Translate" onclick="toggleTranslate()"><svg viewBox="249 353 117 116" aria-hidden="true" focusable="false" style="display:block;width:100%;height:100%"><defs><clipPath id="translationGlobeClip"><circle cx="306.5" cy="408.5" r="52.5"/><path d="M278 437 L269 460 Q269 465 276 462 L302 452 Z"/></clipPath></defs><image href="study-card-original.png" x="0" y="0" width="1672" height="941" clip-path="url(#translationGlobeClip)"/></svg></button>';
+
+      h+='<div class="ovl" id="phoneMedia" style="'+pxs(CARD.phone)+'"></div>';
+
+      h+='<button class="zone nav" data-n="'+CARD.prev.n+'" style="'+pxs(CARD.prev)+'" onclick="prevSlide()">‹</button>';
+
+      h+='<button class="zone nav" data-n="'+CARD.next.n+'" style="'+pxs(CARD.next)+'" onclick="nextSlide()">›</button>';
+
+      h+='<section id="practicePlayer" aria-label="Listen, record and compare"><button type="button" class="lp-button lp-listen" data-player="listen" aria-label="Listen" title="Listen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button><button type="button" class="lp-button lp-record" data-player="record" aria-label="Record your voice" title="Record your voice"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 6 6.93V21H8v2h8v-2h-3v-2.07A7 7 0 0 0 19 12v-2h-2v2a5 5 0 0 1-10 0v-2z"/></svg></button><button type="button" class="lp-button lp-compare" data-player="compare" aria-label="Play both and check" title="Play both and check"><svg viewBox="0 0 32 24" aria-hidden="true"><path d="M3 5v14l10-7zM19 5v14l10-7z"/></svg></button><canvas class="lp-wave lp-model" data-player="modelWave" aria-label="Model waveform"></canvas><canvas class="lp-wave lp-user" data-player="userWave" aria-label="Your waveform"></canvas><div class="lp-count" data-player="count" hidden></div><div class="lp-status" data-player="status" role="status" aria-live="polite"></div></section>';
+
+      h+='<button class="zone" data-n="'+CARD.back.n+'" style="'+pxs(CARD.back)+'" onclick="showCard(\'hubScreen\')"></button>';
+
+      ['lesson'].forEach(function(k){ const b=CARDNAV[k]; h+='<button class="cardnav" data-n="'+b.n+'" style="left:'+b.left+'%; top:'+b.top+'%; width:'+b.width+'%; background:#102b4b;color:white;font:700 1vw system-ui;border-radius:8px;" onclick="buildHub();showCard(\'hubScreen\')">Lesson</button>'; });
+
+      document.getElementById("slidesStage").innerHTML=h;
+
+      practicePlayer=createPracticePlayer(document.getElementById("practicePlayer"),{onAction:stopOtherAudio,makeVoice:makeModelVoice});
+
+      showSlide();
+
+      LMNLayout.apply(LMNLayout.load());
+
+    }
+
+    function showSlide(){
+
+      stopOtherAudio();slideRevision++;
+
+      const s=curS();
+
+      renderClickablePhrase(document.getElementById("phraseBox"), s.phrase);
+
+      document.getElementById("enPhrase").textContent="EN: "+s.phrase;
+
+      const tp=document.getElementById("transPanel"), xb=document.getElementById("xlateBtn");
+
+      xlateShown=false; tp.style.display="none";
+
+      const languageSelect=document.getElementById("langSel");
+
+      languageSelect.style.display=""; languageSelect.value=currentLang||"";
+
+      document.getElementById("transOut").textContent="";
+
+      document.getElementById("listenBtn").style.display="none";
+
+      if(xb) xb.style.display = s.skip_translate ? "none" : "";
+
+      if(!s.skip_translate && currentLang){tp.style.display="flex";xlateShown=true;doTranslate();}
+
+      const audioUrl=firstAudioUrl(s);
+
+      practicePlayer.setLesson({text:s.phrase,audioUrl});
+
+      const media=s.phone_media_url, pm=document.getElementById("phoneMedia");
+
+      const mt=(s.phone_media_type||"").toLowerCase().trim();
+
+      const isVideo = !!media && ( mt.indexOf("video")>-1 || ( mt!=="image" && mt!=="img" && /\.(mp4|m4v|mov|webm|ogv)(\?|#|$)/i.test(media) ) );
+
+      pm.innerHTML = media ? (isVideo ? '<video id="cardVideo" src="'+media+'" playsinline webkit-playsinline preload="metadata"></video>' : '<img src="'+media+'" alt="">') : "media";
+
+      const oldBtn=document.getElementById("playToggle"); if(oldBtn) oldBtn.remove();
+
+      if(isVideo){
+
+        const b=document.createElement("button");
+
+        b.id="playToggle"; b.setAttribute("style",pxs(CARD.playbtn));
+
+        b.innerHTML=PLAY_ICON;
+
+        b.onclick=togglePlay;
+
+        document.getElementById("slidesStage").appendChild(b);
+
+        const v=document.getElementById("cardVideo");
+
+        v.onplay=function(){ stopOtherAudio(v);practicePlayer?.pause(); b.innerHTML=PAUSE_ICON; };
+
+        v.onpause=function(){ b.innerHTML=PLAY_ICON; };
+
+        v.onended=function(){ b.innerHTML=PLAY_ICON; };
+
+        v.play().catch(function(){});   // autoplay on card open; if the browser blocks it, the play button remains
+
+      }
+
+    }
+
+    function prevSlide(){ if(sIdx>0){ sIdx--; } else { sIdx=currentCards.length-1; } showSlide(); }
+
+    function nextSlide(){
+
+      if(sIdx<currentCards.length-1){ sIdx++; showSlide(); }
+
+      else { markLessonComplete(); showCard("hubScreen"); buildHub(); }
+
+    }
+
+    async function markLessonComplete(){
+
+      if(!currentLesson)return;
+
+      setActivity('speak');
+
+      await saveLessonCompletion();
+
+    }
+
+function toggleTranslate(){
+
+      const tp=document.getElementById("transPanel"), sel=document.getElementById("langSel"), out=document.getElementById("transOut"), lb=document.getElementById("listenBtn");
+
+      if(xlateShown){ tp.style.display="none"; xlateShown=false; return; }
+
+      if(curS().skip_translate)return;
+
+      tp.style.display="flex"; xlateShown=true; sel.style.display="";
+
+      if(!currentLang){ sel.style.display=""; sel.value=""; out.textContent="\uD83D\uDC47 Pick your language"; lb.style.display="none"; }
+
+      else { sel.value=currentLang; doTranslate(); }
+
+    }
+
+      async function doTranslate(){
+
+      const lang=document.getElementById("langSel").value, out=document.getElementById("transOut"), lb=document.getElementById("listenBtn");
+
+      const request=++translationRequest;
+
+      stopOtherAudio();
+
+      currentLang=lang; try{ localStorage.setItem("lmnLang",lang); }catch(e){} document.getElementById("langSel").style.display="";
+
+      if(!lang){ out.textContent=""; lb.style.display="none"; return; }
+
+      const forIdx=slideRevision;
+
+      out.textContent="Translating\u2026"; lb.style.display="none";
+
+      try{ const r=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"translate",text:curS().phrase,lang:lang})}); const d=await r.json(); if(request!==translationRequest||forIdx!==slideRevision||lang!==currentLang) return; if(d.translation){ out.textContent=d.translation; lb.style.display="inline-block"; } else out.textContent="No translation."; }catch(e){ if(request===translationRequest&&forIdx===slideRevision&&lang===currentLang) out.textContent="Translation unavailable."; }
+
+    }
+
+    async function doListen(){
+
+      const lang=document.getElementById('langSel').value,text=document.getElementById('transOut').textContent;
+
+      if(!lang||!text)return;
+
+      if(curAudio&&!curAudio.paused){stopOtherAudio();return;}
+
+      stopOtherAudio();practicePlayer?.pause();const request=mediaRequest,revision=slideRevision;
+
+      try{
+
+        const r=await fetch(FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'speak',text,lang})});
+
+        if(!r.ok)throw Error('Speech unavailable');const d=await r.json();
+
+        if(request!==mediaRequest||revision!==slideRevision||lang!==currentLang)return;
+
+        if(d.audio){curAudio=new Audio('data:audio/mp3;base64,'+d.audio);await curAudio.play();}
+
+      }catch(e){if(request===mediaRequest)toast('Translation audio unavailable.');}
+
+    }
+
+    function speakWord(w){
+
+      stopOtherAudio();practicePlayer?.pause();
+
+      try{ if(!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(w); u.lang="en-US"; u.rate=0.9; window.speechSynthesis.speak(u); }catch(e){}
+
+    }
+
+    function renderClickablePhrase(el, phrase){
+
+      el.innerHTML="";
+
+      const wrap=document.createElement("span"); wrap.className="wp";
+
+      String(phrase).split(/(\s+)/).forEach(function(tok){
+
+        if(tok==="") return;
+
+        if(/^\s+$/.test(tok)){ wrap.appendChild(document.createTextNode(tok)); return; }
+
+        const clean=tok.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,"");
+
+        const sp=document.createElement("span"); sp.className="wtap"; sp.textContent=tok;
+
+        sp.onclick=function(){ speakWord(clean||tok); };
+
+        wrap.appendChild(sp);
+
+      });
+
+      el.appendChild(wrap);
+
+    }
+
+      const PLAY_ICON='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+
+      const PAUSE_ICON='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+
+     function togglePlay(){ const v=document.getElementById("cardVideo"); if(!v) return; if(v.paused) v.play(); else v.pause(); }
+
+    function firstAudioUrl(row){
+
+      for(const name of ['model_audio_url','audio_url','model_audio','tts_audio_url','tts_url','audio']){
+
+        if(typeof row[name]==='string'&&row[name].trim())return row[name].trim();
+
+      }
+
+      return '';
+
+    }
+
+    async function makeModelVoice(phrase,signal){
+
+      if(voiceCache.has(phrase))return voiceCache.get(phrase);
+
+      const r=await fetch(FUNCTION_URL,{method:'POST',signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'speak',text:phrase,lang:'en'})});
+
+      if(!r.ok)throw Error('Model speech unavailable');const d=await r.json();
+
+      if(!d.audio)throw Error('No model audio');const url='data:audio/mp3;base64,'+d.audio;
+
+      voiceCache.set(phrase,url);return url;
+
+    }
+
+    function stopOtherAudio(exceptVideo){
+
+      mediaRequest++;
+
+      if(curAudio){curAudio.pause();curAudio=null;}
+
+      window.speechSynthesis?.cancel();
+
+      document.querySelectorAll('video').forEach(v=>{if(v!==exceptVideo)v.pause();});
+
+    }
+
+    window.addEventListener('pagehide',()=>{stopOtherAudio();practicePlayer?.destroy();practicePlayer=null;});
+
+
+
+    /* ===== LOGIN + PROGRESS ===== */
+
+    async function doLogin(){
+
+      if(!db){ document.getElementById("loginStatus").textContent="Supabase not configured."; return; }
+
+      const name=document.getElementById("nameInput").value.trim(), pin=document.getElementById("pinInput").value.trim(), status=document.getElementById("loginStatus");
+
+      status.textContent="Checking\u2026";
+
+      const { data, error } = await db.from("students").select("id, display_name").ilike("display_name",name).eq("pin",pin);
+
+      if(error){ status.textContent="Something went wrong: "+error.message; return; }
+
+      if(!data||!data.length){ status.textContent="We couldn't find that name and PIN. Try again."; return; }
+
+      currentStudent=data[0]; status.textContent="";
+
+      await loadProgress(); renderPicker();
+
+      document.getElementById("loginPanel").classList.add("hidden");
+
+      toast("Welcome, "+currentStudent.display_name+"! Pick a unit.");
+
+    }
+
+    async function loadProgress(){ doneLessons=[]; const { data, error } = await db.from("progress").select("lesson_id").eq("student_id",currentStudent.id).eq("status","completed"); if(error){ console.error(error); return; } doneLessons=(data||[]).map(r=>String(r.lesson_id)); }
+
+    function logout(){ currentStudent=null; doneLessons=[]; document.getElementById("nameInput").value=""; document.getElementById("pinInput").value=""; renderPicker(); document.getElementById("loginPanel").classList.add("hidden"); toast("Logged out"); }
+
+
+
+    async function finishLessonAndReturn(){
+
+      await markLessonComplete();
+
+      if(LMN_PREVIEW){buildHub();showCard('hubScreen');}
+
+      else {renderUnit();showCard('unitScreen');}
+
+    }
+
+    function toggleCal(){ document.body.classList.toggle("cal"); }
+
+    function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1600); }
+
+
+
+    renderPicker();
+
+    if(LMN_PREVIEW){
+
+      fetch('preview-lesson.json').then(r=>{if(!r.ok)throw Error('Preview unavailable');return r.json();}).then(data=>{
+
+        currentLesson=data.lesson;currentUnit=data.unit;previewCards=data.cards;
+
+        document.getElementById('hubStage').style.backgroundImage='url("lesson-menu.png")';
+
+        buildHub();showCard('hubScreen');
+
+      }).catch(()=>toast('Could not open the lesson preview.'));
+
+    }
+
+  </script>
+
+</body>
+
+</html>
