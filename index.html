@@ -653,6 +653,7 @@ ui('loading','');return api;
       const id=String(lesson.id);
 
       if(doneLessons.includes(id)) return "done";
+          if(Number(lesson.unit_id)===2 && Number(lesson.lesson_number)===4) return "available";
 
       if(num===1) return "available";
 
